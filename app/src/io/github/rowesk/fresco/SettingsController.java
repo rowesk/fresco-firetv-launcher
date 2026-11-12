@@ -1060,7 +1060,7 @@ final class SettingsController {
                 title = "Stremio";
                 body = stremio.signedIn()
                         ? "Continue watching refreshes in the background, so home never waits for the internet."
-                        : "Not signed in. Sign in once from the Mac; only the login token is kept on the stick.";
+                        : "Not signed in. Sign in once from a computer (app/tools/stremio-login.sh); only the login token is kept on the stick.";
                 break;
             case "tint":
                 title = "Bedtime tint";
@@ -1148,8 +1148,10 @@ final class SettingsController {
 
     private String tintBody() {
         String button = prefs.musicTint() ? "The Amazon Music button" : "Fast-forward on home";
-        return enabled ? "Dims and warms every app at night. " + button + " turns it on or off."
-                : "Off in the evenings. " + button + " still turns it on for tonight.";
+        String note = TintController.overrideNote(prefs);
+        String base = enabled ? "Dims and warms every app at night. " + button + " turns it on or off; a second press goes back to the schedule."
+                : "Off in the evenings. " + button + " still turns it on until " + Ui.hhmm(prefs.tintOff()) + ".";
+        return note == null ? base : note + " " + base;
     }
 
     private void updateTintContext(boolean animate) {
@@ -1443,7 +1445,7 @@ final class SettingsController {
             } else {
                 d.setColor(0);
                 d.setStroke(2, Ui.withAlpha(c, .7f));
-                r.valText.setText("Not signed in · sign in from the Mac");
+                r.valText.setText("Not signed in · sign in from a computer");
             }
             r.dot.setBackground(d);
         }

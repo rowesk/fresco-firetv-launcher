@@ -1,23 +1,28 @@
 package io.github.rowesk.fresco;
 
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapShader;
-import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+
 /**
- * The dock's marks, drawn once into small bitmaps: a quiet mark for rest and the colour mark for
- * focus (they crossfade). Stremio and YouTube are hand-drawn from the prototype's 100-unit SVGs, a
- * white mono mark and the brand colours. Any other app shows its own icon in the same box.
+ * The dock's marks, drawn once into small bitmaps: a white mono mark for rest and the colour mark for
+ * focus (they crossfade). Stremio and YouTube are hand-drawn from the prototype's 100-unit SVGs; other
+ * known apps draw their mark from assets/marks (MarkArt); any other app gets a monogram of its name in
+ * a colour taken from its icon. No app's own icon is ever shown.
  */
 final class Marks {
     private Marks() {}
@@ -25,9 +30,8 @@ final class Marks {
     static final int SIZE = 96;
     /** Room around the mark for its soft drop shadow. */
     static final int PAD = 8;
-    /** Another app's icon: a rounded square a little inside the mark box, so it weighs about the same as the drawn marks. */
-    private static final int ICON = 80;
-    private static final float ICON_RADIUS = 18;
+    /** The monogram letter's size, and the stroke that brings Red Hat Display 500 up to the marks' weight. */
+    static final float MONO_TEXT = 42, MONO_BOLD = 2.6f;
 
     static Bitmap stremio(boolean color) {
         Path shape = new Path();
@@ -48,52 +52,102 @@ final class Marks {
         return render(shape, play, color, null, 0xFFFF0033);
     }
 
-    /**
-     * An app's own icon as {rest, focus}. Icons are full-colour artwork, so a white silhouette would
-     * be a blank square; instead rest mutes the colour (30 % saturation, 90 % alpha) with the mono
-     * marks' soft shadow, and focus wakes it on the milk glass, as the brand marks do.
-     */
-    static Bitmap[] icon(Drawable d) {
-        Bitmap art = Bitmap.createBitmap(ICON, ICON, Bitmap.Config.ARGB_8888);
-        d.setBounds(0, 0, ICON, ICON);
-        d.draw(new Canvas(art));
-        ColorMatrix muted = new ColorMatrix();
-        muted.setSaturation(.3f);
-        Bitmap rest = iconMark(art, new ColorMatrixColorFilter(muted), .9f, true);
-        Bitmap focus = iconMark(art, null, 1, false);
-        art.recycle();
+    /** A known app's mark from assets/marks as {rest, focus}, or null if its file can't be read. */
+    static Bitmap[] brand(AssetManager assets, MarkArt.Brand b) {
+        MarkArt.Art art;
+        try (InputStream in = assets.open("marks/" + b.id + ".svg")) {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            for (int n; (n = in.read(buf)) > 0; ) bytes.write(buf, 0, n);
+            art = MarkArt.load(new String(bytes.toByteArray(), StandardCharsets.UTF_8), b.fit);
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+        // Rest: every layer as one white shape, less the cut-outs.
+        Path ink = new Path(), cut = new Path();
+        for (MarkArt.Layer l : art.layers) (l.cut ? cut : ink).op(path(l), Path.Op.UNION);
+        ink.op(cut, Path.Op.DIFFERENCE);
+        Bitmap rest = mono(ink);
+
+        // Focus: the layers in order, in the brand gradient, their own colour, or white.
+        Bitmap focus = blank();
+        Canvas c = canvas(focus);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Shader brand = b.top == b.bottom ? null : new LinearGradient(0, art.top, 0, art.bottom, b.top, b.bottom, Shader.TileMode.CLAMP);
+        for (MarkArt.Layer l : art.layers) {
+            boolean own = l.cut || l.fill != 0;
+            p.setShader(own ? null : brand);
+            p.setColor(l.cut ? 0xFFFFFFFF : own ? l.fill : b.top);
+            c.drawPath(path(l), p);
+        }
         return new Bitmap[]{rest, focus};
     }
 
-    private static Bitmap iconMark(Bitmap art, ColorMatrixColorFilter filter, float alpha, boolean shadow) {
-        int s = SIZE + 2 * PAD;
-        float o = PAD + (SIZE - ICON) / 2f;
+    /**
+     * Any other app: the first letter or digit of its name cut from a rounded tile, as {rest, focus}.
+     * The focus tile takes the colour from accent(); the letter is white.
+     */
+    static Bitmap[] monogram(String name, int color) {
+        Path tile = new Path();
+        tile.addRoundRect(new RectF(20, 20, 80, 80), 16, 16, Path.Direction.CW);
+        Path letter = letter(name);
+        return new Bitmap[]{render(tile, letter, false, null, color), render(tile, letter, true, null, color)};
+    }
+
+    /** A monogram's colour from the app's icon, drawn small and freed straight away; the icon is never shown. */
+    static int accent(Drawable icon) {
+        if (icon == null) return MarkArt.NEUTRAL;
+        int s = 32;
         Bitmap b = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
-        // A shader-filled round rect, so the corners are anti-aliased (a clipPath on a bitmap canvas isn't).
-        BitmapShader shader = new BitmapShader(art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
-        Matrix m = new Matrix();
-        m.setTranslate(o, o);
-        shader.setLocalMatrix(m);
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        p.setShader(shader);
-        p.setColorFilter(filter);
-        p.setAlpha(Math.round(alpha * 255));
-        new Canvas(b).drawRoundRect(o, o, o + ICON, o + ICON, ICON_RADIUS, ICON_RADIUS, p);
-        if (!shadow) return b;
-        // The shadow follows the icon's own alpha, so a round icon gets a round shadow.
-        Paint blur = new Paint();
-        blur.setMaskFilter(new BlurMaskFilter(3f * SIZE / 100f, BlurMaskFilter.Blur.NORMAL));
-        int[] at = new int[2];
-        Bitmap sh = b.extractAlpha(blur, at);
-        Bitmap out = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(out);
-        Paint sp = new Paint();
-        sp.setColor(0x2E000000);
-        c.drawBitmap(sh, at[0], at[1] + 2f * SIZE / 100f, sp);
-        c.drawBitmap(b, 0, 0, null);
-        sh.recycle();
+        icon.setBounds(0, 0, s, s);
+        icon.draw(new Canvas(b));
+        int[] px = new int[s * s];
+        b.getPixels(px, 0, s, 0, 0, s, s);
         b.recycle();
-        return out;
+        return MarkArt.accent(px);
+    }
+
+    /** The name's first letter or digit in Red Hat Display, centred by its ink and thickened to match the marks. */
+    private static Path letter(String name) {
+        String ch = "?";
+        for (int i = 0; i < name.length(); ) {
+            int cp = name.codePointAt(i);
+            if (Character.isLetterOrDigit(cp)) {
+                ch = new String(Character.toChars(cp)).toUpperCase(Locale.ROOT);
+                break;
+            }
+            i += Character.charCount(cp);
+        }
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setTypeface(Ui.display500 != null ? Ui.display500 : Typeface.DEFAULT_BOLD);
+        p.setTextSize(MONO_TEXT);
+        Path glyph = new Path();
+        p.getTextPath(ch, 0, ch.length(), 0, 0, glyph);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(MONO_BOLD);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        Path bold = new Path();
+        p.getFillPath(glyph, bold);
+        bold.op(glyph, Path.Op.UNION);
+        RectF r = new RectF();
+        bold.computeBounds(r, true);
+        bold.offset(50 - r.centerX(), 50 - r.centerY());
+        return bold;
+    }
+
+    private static Path path(MarkArt.Layer l) {
+        Path p = new Path();
+        p.setFillType(l.evenOdd ? Path.FillType.EVEN_ODD : Path.FillType.WINDING);
+        float[] q = l.pts;
+        for (int i = 0, k = 0; i < l.nOps; i++) {
+            switch (l.ops[i]) {
+                case MarkArt.MOVE: p.moveTo(q[k], q[k + 1]); k += 2; break;
+                case MarkArt.LINE: p.lineTo(q[k], q[k + 1]); k += 2; break;
+                case MarkArt.CUBIC: p.cubicTo(q[k], q[k + 1], q[k + 2], q[k + 3], q[k + 4], q[k + 5]); k += 6; break;
+                default: p.close();
+            }
+        }
+        return p;
     }
 
     /** A triangle with the SVG's round-joined stroke folded into its outline. */
@@ -113,26 +167,44 @@ final class Marks {
         return outline;
     }
 
+    /** Rest: the shape less the play mark, white. Focus: the shape in brand colour with the play mark white on it. */
     private static Bitmap render(Path shape, Path play, boolean color, Shader brand, int brandColor) {
-        Bitmap b = Bitmap.createBitmap(SIZE + 2 * PAD, SIZE + 2 * PAD, Bitmap.Config.ARGB_8888);
+        if (!color) {
+            Path cut = new Path(shape);
+            cut.op(play, Path.Op.DIFFERENCE);
+            return mono(cut);
+        }
+        Bitmap b = blank();
+        Canvas c = canvas(b);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        if (brand != null) p.setShader(brand);
+        else p.setColor(brandColor);
+        c.drawPath(shape, p);
+        p.setShader(null);
+        p.setColor(0xFFFFFFFF);
+        c.drawPath(play, p);
+        return b;
+    }
+
+    /** Every mark at rest: white at 92 % with a soft shadow. */
+    private static Bitmap mono(Path shape) {
+        Bitmap b = blank();
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(Ui.white(.92f));
+        p.setShadowLayer(3f / (SIZE / 100f), 0, 2f / (SIZE / 100f), 0x2E000000);
+        canvas(b).drawPath(shape, p);
+        return b;
+    }
+
+    private static Bitmap blank() {
+        return Bitmap.createBitmap(SIZE + 2 * PAD, SIZE + 2 * PAD, Bitmap.Config.ARGB_8888);
+    }
+
+    /** A canvas in mark units: the 100 box mapped onto the SIZE px inside the shadow padding. */
+    private static Canvas canvas(Bitmap b) {
         Canvas c = new Canvas(b);
         c.translate(PAD, PAD);
         c.scale(SIZE / 100f, SIZE / 100f);
-        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        if (color) {
-            if (brand != null) p.setShader(brand);
-            else p.setColor(brandColor);
-            c.drawPath(shape, p);
-            p.setShader(null);
-            p.setColor(0xFFFFFFFF);
-            c.drawPath(play, p);
-        } else {
-            Path cut = new Path(shape);
-            cut.op(play, Path.Op.DIFFERENCE);
-            p.setColor(Ui.white(.92f));
-            p.setShadowLayer(3f / (SIZE / 100f), 0, 2f / (SIZE / 100f), 0x2E000000);
-            c.drawPath(cut, p);
-        }
-        return b;
+        return c;
     }
 }

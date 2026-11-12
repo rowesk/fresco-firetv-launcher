@@ -13,7 +13,7 @@ Measurements are **px at 1920×1080**. On the stick 1 dp = 2 px, so divide by 2 
 - **The picture comes first.** A small dock instead of a full-width row of equal tiles, so the wallpaper keeps about 90 % of the screen.
 - **Real glass on Android 9.** It's drawn from the wallpaper's own pre-blurred copy, magnified ×1.05 with a lensed rim, because Fire OS can't blur live.
 - **Solved per wallpaper.** Tint, frost, focus brightness and scrims are calculated for each picture, so text contrast lands on target on bright and dark images alike (§6, §7).
-- **Focus you can see from the sofa.** Focus is milk glass with dark ink, the brand colour waking on the icon, and a ×1.04 scale.
+- **Focus you can see from the sofa.** Focus is milk glass with dark ink, the brand colour waking on the mark, and a ×1.04 scale.
 - **Light that follows the sun.** The rim highlight is top-left in the morning, overhead by day, top-right in the evening and faint at night.
 - **A complete motion system.** The droplet, the dip, the reveal from black, the ambient settle, rolling clock digits and sliding values. All of it is transform and alpha only.
 
@@ -86,7 +86,7 @@ Top centre, y = 56. The pill is 100 px tall with radius 50 and padding 20 / 44. 
 | `amber-deep` | `#4A1E00` @ 0–0.55 | Alternative "Amber" tint recipe |
 | `toast-bg` | `#18110C` @ 86 % | Smoked pill over other apps |
 | `toast-ink` | `#FFF6EC`; subtitle `#FFECD6` @ 66 % | Toast text |
-| Brand marks | Stremio gradient `#A57BFF → #5A3FE3`; YouTube `#FF0033`; any other app shows its own icon, muted (30 % saturation) at rest | Full colour only on the focused app; white mono marks (or the muted icon) otherwise |
+| Brand marks | Stremio gradient `#A57BFF → #5A3FE3`; YouTube `#FF0033`; other known apps take their brand colour from `MarkArt` (ink-dark for brands too pale or dark for the milk); any other app's monogram takes a colour from its icon, clamped to luminance 0.06–0.20 | Full colour only on the focused app; white mono marks otherwise. No app's own icon is ever shown |
 
 ---
 
@@ -233,7 +233,10 @@ The scrims are static drawables: a radial gradient top-right, linear gradients f
 ### App cell and droplet
 
 - **Rest**:
-  - White mono mark: Stremio is a rounded diamond with the play triangle cut out; YouTube is a rounded rect with the triangle cut out. Author them as `VectorDrawable`s.
+  - White mono mark (92 % white, soft shadow): Stremio is a rounded diamond with the play triangle cut out; YouTube is a rounded rect with the triangle cut out.
+  - Every other known app has a mark in `app/assets/marks/` (credits in `CREDITS.md` there), mapped by its Fire TV and Android TV package names in `MarkArt`. These are Simple Icons glyphs, or original glyphs for brands Simple Icons doesn't carry. Each is sized optically into the 96 px box: its bounds get a geometric mean of 64 units, no side over 84, plus a per-mark nudge. White layers in a mark are cut out at rest and white on focus.
+  - Any other app gets a monogram: the first letter or digit of its name in Red Hat Display, cut from a 60-unit rounded tile. The focus colour is the dominant saturated hue of its icon. The icon is drawn at 32 px only to sample it, then freed.
+  - `app/tools/preview-marks.sh` draws all of them on the Mac with the app's own data.
   - Label is white at 64 %.
 - **Focus**:
   - The droplet is under the cell.

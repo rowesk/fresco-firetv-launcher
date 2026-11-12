@@ -703,7 +703,7 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         } else if (s == StremioClient.State.SIGNED_OUT) {
             peekText.setTypeface(Ui.text400);
             peekText.setTextColor(Ui.white(.82f));
-            peekText.setText("Sign in to Stremio on the Mac to see what you were watching");
+            peekText.setText("Sign in to Stremio from a computer to see what you were watching");
         }
         if (zone == ROW && !row.canOpen()) closeRow(true);
     }
@@ -983,7 +983,7 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
 
     // ------------------------------------------------------------------ small views
 
-    /** An app in the dock: quiet mark and white label at rest; colour mark and dark label on milk glass. */
+    /** An app in the dock: white mark and white label at rest; colour mark and dark label on milk glass (Apps.marks). */
     private static final class Cell extends FrameLayout {
         final ImageView mono, color;
         final TextView labelW, labelK;

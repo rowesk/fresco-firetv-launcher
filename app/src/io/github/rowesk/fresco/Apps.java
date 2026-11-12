@@ -106,19 +106,30 @@ final class Apps {
         return i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
     }
 
-    /** The mono mark (rest) and the colour mark (focus): hand-drawn for Stremio and YouTube, the app's icon otherwise. */
+    /** YouTube's Android TV build and YouTube TV, which get the same hand-drawn mark as YouTube on Fire TV. */
+    private static final String YOUTUBE_ATV = "com.google.android.youtube.tv", YOUTUBE_TV = "com.google.android.youtube.tvunplugged";
+
+    /**
+     * The white mark (rest) and the colour mark (focus): hand-drawn for Stremio and YouTube, a mark from
+     * assets/marks for other known apps, and a monogram for the rest. No app's own icon is shown; a
+     * monogram only borrows its colour.
+     */
     static Bitmap[] marks(Context c, String pkg) {
         if (FrescoService.STREMIO.getPackageName().equals(pkg)) return new Bitmap[]{Marks.stremio(false), Marks.stremio(true)};
-        if (FrescoService.YOUTUBE.getPackageName().equals(pkg)) return new Bitmap[]{Marks.youtube(false), Marks.youtube(true)};
-        PackageManager pm = c.getPackageManager();
-        Drawable d;
-        try {
-            d = pm.getApplicationIcon(pkg);
-        } catch (PackageManager.NameNotFoundException e) {
-            d = pm.getDefaultActivityIcon();
+        if (FrescoService.YOUTUBE.getPackageName().equals(pkg) || YOUTUBE_ATV.equals(pkg) || YOUTUBE_TV.equals(pkg)) {
+            return new Bitmap[]{Marks.youtube(false), Marks.youtube(true)};
         }
-        // Only the two small renders are kept; the icon drawable itself goes with this call.
-        return Marks.icon(d);
+        MarkArt.Brand brand = MarkArt.forPackage(pkg);
+        Bitmap[] m = brand == null ? null : Marks.brand(c.getAssets(), brand);
+        if (m != null) return m;
+        Drawable icon;
+        try {
+            icon = c.getPackageManager().getApplicationIcon(pkg);
+        } catch (PackageManager.NameNotFoundException e) {
+            icon = null;
+        }
+        // Only the two small renders are kept; the icon goes with this call.
+        return Marks.monogram(label(c, pkg), Marks.accent(icon));
     }
 
     /**

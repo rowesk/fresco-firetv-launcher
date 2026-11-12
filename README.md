@@ -15,7 +15,7 @@ No ads, no autoplaying trailers, no sponsored rows. Just a masterpiece for the t
 
 **A bedtime tint for the whole TV.** Fire OS has no night light, so Fresco brings one: a warm, dim amber layer over every app and video that fades in on your schedule and fades out in the morning. The Amazon Music button switches it on or off. Copy-protected apps like Prime Video are skipped automatically.
 
-**Only the apps you use.** A small glass dock holds one to four apps of your choosing. Everything else is still one press away on the remote's Apps button.
+**Only the apps you use.** A small glass dock holds one to four apps of your choosing, each drawn as a clean white mark that wakes in its brand colour when you land on it. Everything else is still one press away on the remote's Apps button.
 
 **Your remote, your way.** Make the Netflix and Prime Video buttons open the apps you actually use, or leave them alone.
 
@@ -111,6 +111,7 @@ The first build downloads the Nature and Abstract photos from Pexels and Unsplas
 - **Paintings**: public domain, via Wikimedia Commons ([credits](wallpapers/art/CREDITS.md)).
 - **Space**: NASA (public domain), and ESA/Webb, ESA/Hubble and ESO (CC BY 4.0) ([credits](wallpapers/space/CREDITS.md)).
 - **Nature and Abstract**: photographers on Pexels and Unsplash ([nature](wallpapers/nature/CREDITS.md), [abstract](wallpapers/abstract/CREDITS.md)).
+- **App marks**: most are from [Simple Icons](https://simpleicons.org) (CC0); the rest are original designs ([credits](app/assets/marks/CREDITS.md)).
 - **Type**: Red Hat Display and Red Hat Text, SIL Open Font License.
 
 Fresco isn't affiliated with Amazon, Stremio, YouTube or Netflix. Their names and marks belong to them.

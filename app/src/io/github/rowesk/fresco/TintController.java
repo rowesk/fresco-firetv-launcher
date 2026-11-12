@@ -141,32 +141,58 @@ final class TintController implements SharedPreferences.OnSharedPreferenceChange
     }
 
     /**
-     * The Amazon Music button (and fast-forward on home). Below full: on at full strength until the morning's off time. At full: off
-     * until the next evening's start. No toast, and no tint, while a skipped app is in front.
+     * The Amazon Music button (and fast-forward on home) flips what you can see. If the flipped state is
+     * what the schedule shows right now, the press just drops any override (back to the schedule), so a
+     * second press always undoes the first. Otherwise it sets an override that ends at the next morning's
+     * off time: on until then, or off for tonight. No toast, and no tint, while a skipped app is in front.
      */
     void toggleFromMusic(String returningTo) {
-        // Only full strength counts as on: mid-fade (or off), a press goes straight to the chosen strength.
-        boolean on = level(Calendar.getInstance(), false) >= 1;
-        long until = on ? next(prefs.tintStart()) : next(prefs.tintOff());
+        Calendar now = Calendar.getInstance();
+        boolean visible = level(now, true) > 0;
+        boolean scheduled = scheduled(now) > 0;
+        boolean on = !visible;
+        long off = next(prefs.tintOff()), start = next(prefs.tintStart());
+        String sub;
         writing = true;
-        prefs.setTintManual(on ? -1 : 1, until);
+        if (on == scheduled) {
+            prefs.setTintManual(0, 0);
+            sub = on ? "Back to your schedule, until " + Ui.hhmm(prefs.tintOff())
+                    : prefs.tintEnabled() ? "Back to your schedule, from " + when(start) : "Until you turn it on again";
+        } else {
+            prefs.setTintManual(on ? 1 : -1, off);
+            sub = on ? "Until " + Ui.hhmm(prefs.tintOff()) : "Off for tonight, back " + when(start);
+        }
         writing = false;
-        Log.i(TAG, "tint: music button turns it " + (on ? "off" : "on"));
-        if (on) evaluate(600, 0);
-        else evaluate(900, 80);
+        Log.i(TAG, "tint: music button turns it " + (on ? "on" : "off") + (on == scheduled ? " (back to schedule)" : ""));
+        if (on) evaluate(900, 80);
+        else evaluate(600, 0);
         if (!prefs.isSkipped(returningTo)) {
             if (toast == null) toast = new ToastWindow();
-            toast.show(!on, !on ? "Full strength until " + Ui.hhmm(prefs.tintOff())
-                    : prefs.tintEnabled() ? "Back tomorrow from " + Ui.hhmm(prefs.tintStart()) : "Until you turn it on again");
+            toast.show(on, sub);
         }
+    }
+
+    /** What the Music button is overriding right now, for settings, or null when the schedule is in charge. */
+    static String overrideNote(Prefs prefs) {
+        if (prefs.tintManual() == 0 || System.currentTimeMillis() >= prefs.tintManualUntil()) return null;
+        return prefs.tintManual() > 0 ? "Turned on with the button until " + Ui.hhmm(prefs.tintOff()) + "."
+                : "Turned off with the button for tonight; back " + when(next(prefs.tintStart())) + ".";
+    }
+
+    /** "tonight at 19:15" ("this evening" after midnight), "today at 15:00" or "tomorrow at 19:15". */
+    private static String when(long t) {
+        Calendar c = Calendar.getInstance(), today = Calendar.getInstance();
+        c.setTimeInMillis(t);
+        String time = Ui.hhmm(c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE));
+        boolean sameDay = c.get(Calendar.YEAR) == today.get(Calendar.YEAR) && c.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR);
+        String day = !sameDay ? "tomorrow" : c.get(Calendar.HOUR_OF_DAY) < 17 ? "today"
+                : today.get(Calendar.HOUR_OF_DAY) < 12 ? "this evening" : "tonight";
+        return day + " at " + time;
     }
 
     // ------------------------------------------------------------------ the schedule
 
-    /**
-     * 0..1 of the chosen strength. Linear from start to full, held until off. The evening axis puts
-     * times before noon after midnight, so start/full may cross midnight.
-     */
+    /** 0..1 of the chosen strength: the Music button's override while it lasts, otherwise the schedule. */
     private float level(Calendar now, boolean clearExpired) {
         int manual = prefs.tintManual();
         if (manual != 0) {
@@ -180,6 +206,14 @@ final class TintController implements SharedPreferences.OnSharedPreferenceChange
                 writing = false;
             }
         }
+        return scheduled(now);
+    }
+
+    /**
+     * The schedule alone, 0..1: linear from start to full, held until off. The evening axis puts times
+     * before noon after midnight, so start/full may cross midnight.
+     */
+    private float scheduled(Calendar now) {
         if (!prefs.tintEnabled()) return 0;
         float m = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE) + now.get(Calendar.SECOND) / 60f;
         float e = m < 720 ? m + 1440 : m;
