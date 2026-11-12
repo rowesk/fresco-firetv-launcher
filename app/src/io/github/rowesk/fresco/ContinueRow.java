@@ -47,13 +47,13 @@ final class ContinueRow extends FrameLayout {
     ContinueRow(Context context) {
         super(context);
         setClipChildren(false);
-        title = Ui.add(this, new Lane(context, Ui.display500, 44, Ui.INK, 52), 96, -6, 1300, 64);
-        title.setLetterSpacing(-.005f);
-        meta = Ui.add(this, new Lane(context, Ui.text500, 26, Ui.white(.88f), 34), 96, 60, 1300, 46);
+        title = Ui.add(this, new Lane(context, Ui.display500, 44, 1, 56, true), 96, -45, 1300, 72);
+        title.setLetterSpacing(0);
+        meta = Ui.add(this, new Lane(context, Ui.text500, 26, .86f, 32, false), 96, 23, 1300, 44);
         meta.setFontFeatures("tnum");
         titleBar = Ui.add(title, bar(context), 24, 12, 360, 40);
         metaBar = Ui.add(meta, bar(context), 24, 10, 240, 26);
-        stripBump = Ui.add(this, new FrameLayout(context), 120, 136, 1800, 264);
+        stripBump = Ui.add(this, new FrameLayout(context), 120, 128, 1800, 264);
         stripBump.setClipChildren(false);
         strip = Ui.add(stripBump, new FrameLayout(context), 0, 0, 1800, 264);
         strip.setClipChildren(false);
@@ -88,6 +88,26 @@ final class ContinueRow extends FrameLayout {
     /** Down opens the row when it is ready or loading; otherwise it bumps. */
     boolean canOpen() {
         return state == StremioClient.State.READY || state == StremioClient.State.LOADING;
+    }
+
+    void setPictureInk(boolean dark, boolean animate) {
+        title.setPictureInk(dark, animate);
+        meta.setPictureInk(dark, animate);
+    }
+
+    /** Actual widest strings, stable across focus changes; endpoints include the x=120 axis. */
+    float[] textEnds() {
+        Paint p = new Paint(); p.setTypeface(Ui.display500); p.setTextSize(44); p.setFontFeatureSettings("tnum");
+        float tw = 0, mw = 0;
+        for (StremioClient.Item it : items) tw = Math.max(tw, p.measureText(it.name));
+        p.setTypeface(Ui.text500); p.setTextSize(26);
+        for (StremioClient.Item it : items) {
+            float w = p.measureText(it.episode());
+            String left = it.left();
+            if (left != null) w += (w > 0 ? 29 : 0) + p.measureText(left);
+            mw = Math.max(mw, w);
+        }
+        return new float[]{Math.min(1396, 120 + tw), Math.min(1396, 120 + mw)};
     }
 
     /** Rebuilds the strip. Only called while the row is closed, so nothing moves under the user. */
@@ -198,7 +218,7 @@ final class ContinueRow extends FrameLayout {
         for (int j = 0; j < posters.size(); j++) {
             PosterView p = posters.get(j);
             boolean f = on && j == i;
-            float nudge = on ? (j == i + 1 ? 14 : j == i - 1 ? -14 : 0) : 0;
+            float nudge = on ? (j > i ? 22 : 0) : 0;
             boolean gone = on && j < i;
             long dur = f ? up : down;
             android.animation.TimeInterpolator ease = f ? Ui.OUT : Ui.STD;
@@ -207,13 +227,13 @@ final class ContinueRow extends FrameLayout {
             go(p, View.TRANSLATION_X, nudge, goneDur, goneEase, animate);
             go(p, View.ALPHA, gone ? 0 : 1, goneDur, goneEase, animate);
             p.animateDim(on && !f ? 1 : 0, dur, ease, animate);
-            go(p.lift, View.TRANSLATION_Y, f ? -8 : 0, dur, ease, animate);
-            go(p.lift, View.SCALE_X, f ? 1.12f : 1, dur, ease, animate);
-            go(p.lift, View.SCALE_Y, f ? 1.12f : 1, dur, ease, animate);
+            go(p.lift, View.TRANSLATION_Y, f ? -25 : 0, dur, ease, animate);
+            go(p.lift, View.SCALE_X, f ? 1.125f : 1, dur, ease, animate);
+            go(p.lift, View.SCALE_Y, f ? 1.125f : 1, dur, ease, animate);
             go(p.shadow, View.ALPHA, f ? 1 : 0, dur, ease, animate);
-            go(p.shadow, View.TRANSLATION_Y, f ? 18 : 0, dur, ease, animate);
-            go(p.shadow, View.SCALE_X, f ? 1.06f : .94f, dur, ease, animate);
-            go(p.shadow, View.SCALE_Y, f ? 1.06f : .94f, dur, ease, animate);
+            go(p.shadow, View.TRANSLATION_Y, f ? -25 + 18 : 0, dur, ease, animate);
+            go(p.shadow, View.SCALE_X, f ? 1.125f : .94f, dur, ease, animate);
+            go(p.shadow, View.SCALE_Y, f ? 1.125f : .94f, dur, ease, animate);
             go(p.rimf, View.ALPHA, f ? 1 : 0, f ? 320 : 160, ease, animate);
             if (f && animate && dir != 0 && !fast) {
                 // Arrival: the poster turns to face you, and its artwork settles a beat later (parallax).
@@ -248,9 +268,9 @@ final class ContinueRow extends FrameLayout {
         if (idx >= posters.size()) return;
         View l = posters.get(idx).lift;
         float[] f = {0, .5f, 1};
-        Anim.keys(l, View.TRANSLATION_Y, f, new float[]{-8, -4, -8}, 200, Ui.STD, 0);
-        Anim.keys(l, View.SCALE_X, f, new float[]{1.12f, 1.05f, 1.12f}, 200, Ui.STD, 0);
-        Anim.keys(l, View.SCALE_Y, f, new float[]{1.12f, 1.05f, 1.12f}, 200, Ui.STD, 0);
+        Anim.keys(l, View.TRANSLATION_Y, f, new float[]{-25, -13, -25}, 200, Ui.STD, 0);
+        Anim.keys(l, View.SCALE_X, f, new float[]{1.125f, 1.05f, 1.125f}, 200, Ui.STD, 0);
+        Anim.keys(l, View.SCALE_Y, f, new float[]{1.125f, 1.05f, 1.125f}, 200, Ui.STD, 0);
     }
 
     private void showMeta(int i, int dir, boolean animate, boolean fast) {
@@ -276,97 +296,82 @@ final class ContinueRow extends FrameLayout {
      * Whatever was still leaving is dropped, so held presses retarget instead of queueing.
      */
     static final class Lane extends FrameLayout {
-        static final float SHADOW_RADIUS = 15;
-        static final int SHADOW_COLOR = 0x66000000;
-        private final TextView[] tx = new TextView[2];
+        private final TextView[][] tx = new TextView[2][2]; // tone, moving page
+        private final FrameLayout[] tones = new FrameLayout[2];
+        private final boolean optical;
         private int cur;
 
-        Lane(Context c, android.graphics.Typeface face, float size, int color, int lineH) {
+        Lane(Context c, android.graphics.Typeface face, float size, float level, int baseline, boolean optical) {
             super(c);
+            this.optical = optical;
             setClipChildren(true);
-            // Fading edges are drawn in View.draw(), which a ViewGroup skips unless it says it draws.
             setWillNotDraw(false);
             setHorizontalFadingEdgeEnabled(true);
             setFadingEdgeLength(24);
+            for (int tone = 0; tone < 2; tone++) {
+                tones[tone] = Ui.add(this, new FrameLayout(c), 0, 0, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+                tones[tone].setAlpha(tone == 0 ? 1 : 0);
+                for (int page = 0; page < 2; page++) {
+                    TextView t = Ui.text(c, face, size, Ui.withAlpha(tone == 0 ? Ui.INK : Ui.INK_DARK, level));
+                    Ui.lineHeight(t, size == 44 ? 52 : 32);
+                    Ui.baseline(t, baseline);
+                    t.setAlpha(page == 0 ? 1 : 0);
+                    tx[tone][page] = Ui.add(tones[tone], t, 24, 0, LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
+                }
+            }
+        }
+
+        void setPictureInk(boolean dark, boolean animate) {
             for (int i = 0; i < 2; i++) {
-                TextView t = Ui.text(c, face, size, color);
-                t.setShadowLayer(SHADOW_RADIUS, 0, 0, SHADOW_COLOR);
-                t.setAlpha(i == 0 ? 1 : 0);
-                tx[i] = Ui.add(this, t, 24, 6, LayoutParams.WRAP_CONTENT, lineH);
+                float a = (i == 1) == dark ? 1 : 0;
+                if (animate) Anim.to(tones[i], View.ALPHA, a, 300, Ui.STD, 0);
+                else Anim.set(tones[i], View.ALPHA, a);
             }
         }
-
-        void setLetterSpacing(float em) {
-            for (TextView t : tx) t.setLetterSpacing(em);
-        }
-
-        void setFontFeatures(String f) {
-            for (TextView t : tx) t.setFontFeatureSettings(f);
-        }
-
+        void setLetterSpacing(float em) { for (TextView[] pair : tx) for (TextView t : pair) t.setLetterSpacing(em); }
+        void setFontFeatures(String f) { for (TextView[] pair : tx) for (TextView t : pair) t.setFontFeatureSettings(f); }
         void clear() {
-            for (TextView t : tx) {
-                Anim.cancelAll(t);
-                t.setText("");
-                t.setAlpha(0);
+            for (TextView[] pair : tx) for (TextView t : pair) {
+                Anim.cancelAll(t); t.setText(""); t.setAlpha(0);
             }
         }
-
         void show(CharSequence text, int dir, boolean animate, boolean fast, long extraDelay) {
-            TextView out = tx[cur], in = tx[1 - cur];
-            if (!animate) {
-                Anim.cancelAll(out);
-                Anim.cancelAll(in);
-                in.setText("");
-                in.setAlpha(0);
-                out.setText(text);
-                out.setAlpha(1);
-                out.setTranslationX(0);
-                return;
+            for (int tone = 0; tone < 2; tone++) {
+                TextView out = tx[tone][cur], in = tx[tone][1 - cur];
+                float offset = optical ? Ui.opticalOffset(in, text) : 0;
+                if (!animate) {
+                    Anim.cancelAll(out); Anim.cancelAll(in);
+                    in.setText(""); in.setAlpha(0);
+                    out.setText(text); out.setAlpha(1); out.setTranslationX(offset);
+                } else {
+                    Anim.cancelAll(in); in.setText(text);
+                    Anim.to(out, View.ALPHA, 0, fast ? 80 : 150, Ui.IN, 0);
+                    Anim.to(out, View.TRANSLATION_X, -dir * (fast ? 16 : 48), fast ? 80 : 150, Ui.IN, 0);
+                    long delay = fast ? 60 : 120 + extraDelay, ms = fast ? 200 : 540;
+                    Anim.fromTo(in, View.ALPHA, 0, 1, ms, Ui.OUT, delay);
+                    Anim.fromTo(in, View.TRANSLATION_X, offset + dir * (fast ? 18 : 56), offset, ms, Ui.OUT, delay);
+                }
             }
-            cur = 1 - cur;
-            Anim.cancelAll(in);
-            in.setText(text);
-            Anim.to(out, View.ALPHA, 0, fast ? 80 : 150, Ui.IN, 0);
-            Anim.to(out, View.TRANSLATION_X, -dir * (fast ? 16 : 48), fast ? 80 : 150, Ui.IN, 0);
-            long delay = fast ? 60 : 120 + extraDelay;
-            long ms = fast ? 200 : 540;
-            Anim.fromTo(in, View.ALPHA, 0, 1, ms, Ui.OUT, delay);
-            Anim.fromTo(in, View.TRANSLATION_X, dir * (fast ? 18 : 56), 0, ms, Ui.OUT, delay);
+            if (animate) cur = 1 - cur;
         }
-
-        // The fade is always on: text drifting out goes soft at the lane's edge (24 px each side).
-        @Override
-        protected float getLeftFadingEdgeStrength() {
-            return 1f;
-        }
-
-        @Override
-        protected float getRightFadingEdgeStrength() {
-            return 1f;
-        }
-
-        @Override
-        public boolean hasOverlappingRendering() {
-            return false;
-        }
+        @Override protected float getLeftFadingEdgeStrength() { return 1f; }
+        @Override protected float getRightFadingEdgeStrength() { return 1f; }
+        @Override public boolean hasOverlappingRendering() { return false; }
     }
 
-    /** The small dot between episode and time left: 5 px, white 60 %, 14 px either side. */
+    /** A 5 px dot with 12 px either side, inheriting the run's 86 % picture ink. */
     static final class DotSpan extends ReplacementSpan {
         @Override
         public int getSize(Paint paint, CharSequence text, int start, int end, Paint.FontMetricsInt fm) {
-            return 33;
+            return 29;
         }
 
         @Override
         public void draw(Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, Paint paint) {
             int c = paint.getColor();
-            paint.clearShadowLayer();
-            paint.setColor(Ui.white(.6f));
-            canvas.drawCircle(x + 16.5f, y - 7.5f, 2.5f, paint);
+            canvas.drawCircle(x + 14.5f, y - 7.5f, 2.5f, paint);
             paint.setColor(c);
-            paint.setShadowLayer(Lane.SHADOW_RADIUS, 0, 0, Lane.SHADOW_COLOR);
+
         }
     }
 }

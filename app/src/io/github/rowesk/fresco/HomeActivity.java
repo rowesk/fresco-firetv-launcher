@@ -12,10 +12,10 @@ import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
-import android.graphics.Matrix;
+import android.graphics.ComposeShader;
+import android.graphics.PorterDuff;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
@@ -86,14 +86,18 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
 
     private FrameLayout content, stage, plane, dock, dockBump, gearWrap, gearBump;
     private BitmapView wall, wallBlur, wallBlurNext;
-    private ScrimView scrimTop, scrimBottom, scrimRow;
-    private ClockView clock;
+    private ScrimView scrimBottom, scrimRow;
+    private FrameLayout clock;
+    private ClockView clockLight, clockDark;
+    private Boolean clockIsDark;
     private GlassView dockGlass, droplet, gearGlass;
-    private ImageView gearIcon, peekChevron;
+    private ImageView gearIcon;
+    private final ImageView[] peekChevrons = new ImageView[2];
     private Cell[] cells = new Cell[0];
     private List<String> dockApps = new ArrayList<>();
-    private LinearLayout peek;
-    private TextView peekText;
+    private FrameLayout peek;
+    private final LinearLayout[] peekLines = new LinearLayout[2];
+    private final TextView[] peekTexts = new TextView[2];
     private ContinueRow row;
     private SettingsController settings;
     private View veil;
@@ -158,7 +162,9 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         f.addAction(Intent.ACTION_TIME_CHANGED);
         f.addAction(Intent.ACTION_TIMEZONE_CHANGED);
         registerReceiver(timeReceiver, f);
-        clock.setTime(nowString(), false);
+        clockLight.setTime(nowString(), false);
+        clockDark.setTime(nowString(), false);
+        TintController.setPictureListener(this::updateClockInk);
 
         // Our first frame is black, the same as the service's cover, so the cover can go on it.
         final ViewTreeObserver.OnDrawListener[] first = new ViewTreeObserver.OnDrawListener[1];
@@ -207,6 +213,7 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
     @Override
     protected void onStop() {
         started = false;
+        TintController.setPictureListener(null);
         bound = false;
         arrived = false;
         changing = false;
@@ -274,9 +281,7 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
     }
 
     private void applyTuning(Wallpapers.Tuning t) {
-        scrimTop.setPeak(t.scrimTop);
-        scrimBottom.setPeak(t.scrimBottom);
-        scrimRow.setPeak(t.scrimRow);
+        if (t.hasPictureSamples()) solvePictureText(t);
         dockGlass.setTint(t.dock, t.frost);
         droplet.setMilk(t.milk, 1);
         gearGlass.setTint(t.gear, t.frost);
@@ -314,12 +319,15 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         wallBlur.setAlpha(0);
         wallBlurNext = Ui.add(stage, new BitmapView(this), 0, 0, 1920, 1080);
         wallBlurNext.setAlpha(0);
-        scrimTop = Ui.add(stage, new ScrimView(this, ScrimView.TOP), 1920 - 980, 0, 980, 460);
-        scrimBottom = Ui.add(stage, new ScrimView(this, ScrimView.BOTTOM), 0, 1080 - 475, 1920, 475);
-        scrimRow = Ui.add(stage, new ScrimView(this, ScrimView.ROW), 0, 1080 - 756, 1920, 756);
+        scrimBottom = Ui.add(stage, new ScrimView(this, ScrimView.BOTTOM), 0, 800, 1920, 280);
+        scrimRow = Ui.add(stage, new ScrimView(this, ScrimView.ROW), 0, 360, 1920, 720);
         scrimRow.setAlpha(0);
 
-        clock = Ui.add(stage, new ClockView(this), 1688 - 320, 84, 320, 72);
+        clock = Ui.add(stage, new FrameLayout(this), 1688 - 320, 84, 320, 72);
+        clockLight = Ui.add(clock, new ClockView(this), 0, 0, 320, 72);
+        clockDark = Ui.add(clock, new ClockView(this), 0, 0, 320, 72);
+        clockDark.setInk(Ui.INK_DARK);
+        clockDark.setAlpha(0);
 
         gearWrap = Ui.add(stage, new FrameLayout(this), 1720 - GM, 80 - GM, 80 + 2 * GM, 80 + 2 * GM);
         gearWrap.setClipChildren(false);
@@ -358,19 +366,28 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         droplet.glint = true;
         droplet.setShadow(10, 26, .20f);
 
-        peek = Ui.add(plane, new LinearLayout(this), 120, 968, FrameLayout.LayoutParams.WRAP_CONTENT, 32);
-        peek.setOrientation(LinearLayout.HORIZONTAL);
-        peek.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        peekChevron = new ImageView(this);
-        peekChevron.setImageResource(R.drawable.ic_chev_down);
-        peekChevron.setColorFilter(Ui.white(.86f));
-        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(24, 24);
-        clp.leftMargin = 4;
-        clp.rightMargin = 10;
-        peek.addView(peekChevron, clp);
-        peekText = Ui.text(this, Ui.text500, 24, Ui.white(.86f));
-        peekText.setShadowLayer(14, 0, 0, 0x66000000);
-        peek.addView(peekText, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 32));
+        peek = Ui.add(plane, new FrameLayout(this), 120, 968, 1680, 32);
+        for (int i = 0; i < 2; i++) {
+            int ink = i == 0 ? Ui.INK : Ui.INK_DARK;
+            LinearLayout line = Ui.add(peek, new LinearLayout(this), 0, 0, FrameLayout.LayoutParams.WRAP_CONTENT, 32);
+            line.setOrientation(LinearLayout.HORIZONTAL);
+            peekLines[i] = line;
+            line.setAlpha(i == 0 ? 1 : 0);
+            TextView text = Ui.role(this, Ui.TypeRole.META, Ui.withAlpha(ink, .86f));
+            Ui.baseline(text, 26);
+            text.setMaxWidth(Ui.FRAME_RIGHT - Ui.FRAME_X - 32);
+            text.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            peekTexts[i] = text;
+            line.addView(text, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 32));
+            ImageView chev = new ImageView(this);
+            chev.setImageResource(R.drawable.ic_chev_down);
+            chev.setColorFilter(Ui.withAlpha(ink, .86f));
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(24, 24);
+            clp.leftMargin = 8;
+            clp.topMargin = Math.round(26 - Ui.capHeight(text.getPaint()) / 2 - 12);
+            line.addView(chev, clp);
+            peekChevrons[i] = chev;
+        }
 
         row = Ui.add(plane, new ContinueRow(this), 0, 1000, 1920, 420);
         row.setAlpha(0);
@@ -430,6 +447,10 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
         int code = e.getKeyCode();
+        if (e.getAction() == KeyEvent.ACTION_DOWN && mode == SETTINGS
+                && map(code) != SettingsController.SELECT) {
+            settings.disarmRemoval();
+        }
         switch (code) {
             case KeyEvent.KEYCODE_VOLUME_UP:
             case KeyEvent.KEYCODE_VOLUME_DOWN:
@@ -670,7 +691,9 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         java.util.List<StremioClient.Item> items = stremio.items();
         // Rebuild only when something visible changed, so a background sync never flickers the row.
         StringBuilder sig = new StringBuilder(s.name());
-        for (StremioClient.Item it : items) sig.append('|').append(it.id).append(it.videoId).append(it.timeOffset);
+        for (StremioClient.Item it : items) sig.append('|').append(it.id).append(':').append(it.videoId)
+                .append(':').append(it.timeOffset).append(':').append(it.name)
+                .append(':').append(it.episode()).append(':').append(it.left());
         if (!sig.toString().equals(rowSignature)) {
             rowSignature = sig.toString();
             row.setData(s, items, t.dock * .8f, t.frost);
@@ -685,27 +708,54 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
 
     private void updatePeek(StremioClient.State s) {
         peek.setVisibility(s == StremioClient.State.NONE ? View.INVISIBLE : View.VISIBLE);
-        peekChevron.setVisibility(s == StremioClient.State.SIGNED_OUT ? View.GONE : View.VISIBLE);
-        if (s == StremioClient.State.READY) {
-            StremioClient.Item it = stremio.items().get(0);
-            SpannableStringBuilder b = new SpannableStringBuilder(it.name);
-            b.setSpan(new FontSpan(Ui.text600), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            b.setSpan(new ForegroundColorSpan(Ui.INK), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            String ep = it.episode();
-            if (!ep.isEmpty()) b.append(" · ").append(ep);
-            peekText.setTypeface(Ui.text500);
-            peekText.setTextColor(Ui.white(.86f));
-            peekText.setText(b);
-        } else if (s == StremioClient.State.LOADING) {
-            peekText.setTypeface(Ui.text500);
-            peekText.setTextColor(Ui.white(.86f));
-            peekText.setText("Continue watching");
-        } else if (s == StremioClient.State.SIGNED_OUT) {
-            peekText.setTypeface(Ui.text400);
-            peekText.setTextColor(Ui.white(.82f));
-            peekText.setText("Sign in to Stremio from a computer to see what you were watching");
+        for (int i = 0; i < 2; i++) {
+            int ink = i == 0 ? Ui.INK : Ui.INK_DARK;
+            peekChevrons[i].setVisibility(s == StremioClient.State.SIGNED_OUT ? View.GONE : View.VISIBLE);
+            TextView text = peekTexts[i];
+            text.setTypeface(Ui.text500);
+            if (s == StremioClient.State.READY) {
+                StremioClient.Item it = stremio.items().get(0);
+                SpannableStringBuilder b = new SpannableStringBuilder(it.name);
+                b.setSpan(new FontSpan(Ui.text600), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                b.setSpan(new ForegroundColorSpan(ink), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                String ep = it.episode();
+                if (!ep.isEmpty()) {
+                    int at = b.length(); b.append(" ");
+                    b.setSpan(new ContinueRow.DotSpan(), at, at + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    b.append(ep);
+                }
+                text.setText(b);
+            } else if (s == StremioClient.State.LOADING) text.setText("Continue watching");
+            else if (s == StremioClient.State.SIGNED_OUT) text.setText("Sign in to Stremio from a computer to see what you were watching");
         }
+        if (frame != null) solvePictureText(frame.tuning);
         if (zone == ROW && !row.canOpen()) closeRow(true);
+    }
+
+    private void solvePictureText(Wallpapers.Tuning t) {
+        float end = 120 + android.text.Layout.getDesiredWidth(peekTexts[0].getText(), peekTexts[0].getPaint());
+        if (peekChevrons[0].getVisibility() != View.GONE) end += 32;
+        end = Math.min(Ui.FRAME_RIGHT, end);
+        float[] ends = row.textEnds();
+        t.solveBottom(end, ends[0], ends[1]);
+        scrimBottom.setSolution(peek.getVisibility() == View.VISIBLE ? t.peekScrim : 0, t.peekRight);
+        scrimRow.setSolution(t.rowScrim, t.rowRight);
+        for (int i = 0; i < 2; i++) Anim.to(peekLines[i], View.ALPHA, ((i == 1) == t.peekDark) ? 1 : 0, 300, Ui.STD, 0);
+        row.setPictureInk(t.rowDark, true);
+        updateClockInk(t, TintController.pictureAlpha());
+    }
+
+    private void updateClockInk(float tint) {
+        if (frame != null && bound) updateClockInk(frame.tuning, tint);
+    }
+
+    private void updateClockInk(Wallpapers.Tuning t, float tint) {
+        boolean dark = t.solveClock(tint);
+        if (clockIsDark != null && clockIsDark == dark) return;
+        boolean animate = clockIsDark != null;
+        clockIsDark = dark;
+        go(clockLight, View.ALPHA, dark ? 0 : 1, 300, Ui.STD, 0, animate);
+        go(clockDark, View.ALPHA, dark ? 1 : 0, 300, Ui.STD, 0, animate);
     }
 
     // ------------------------------------------------------------------ ambient
@@ -751,7 +801,6 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         Anim.set(peek, View.TRANSLATION_Y, 0);
         Anim.set(scrimRow, View.ALPHA, 0);
         Anim.set(scrimBottom, View.ALPHA, 1);
-        Anim.set(scrimTop, View.ALPHA, 1);
         Anim.set(clock, View.TRANSLATION_X, 0);
         Anim.set(clock, View.ALPHA, 1);
         Anim.set(gearWrap, View.SCALE_X, 1);
@@ -796,7 +845,6 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         Anim.to(plane, View.ALPHA, 0, 220, Ui.IN, 0);
         Anim.to(clock, View.ALPHA, 0, 200, Ui.IN, 0);
         Anim.alphaWithLayer(gearWrap, 0, 200, Ui.IN, 0);
-        Anim.to(scrimTop, View.ALPHA, 0, 300, Ui.STD, 0);
         Anim.to(scrimBottom, View.ALPHA, 0, 300, Ui.STD, 0);
         settings.open();
     }
@@ -811,7 +859,6 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         Anim.to(plane, View.ALPHA, 1, 320, Ui.OUT, 120);
         Anim.to(clock, View.ALPHA, 1, 300, Ui.OUT, 120);
         Anim.alphaWithLayer(gearWrap, 1, 300, Ui.OUT, 120);
-        Anim.to(scrimTop, View.ALPHA, 1, 300, Ui.STD, 60);
         Anim.to(scrimBottom, View.ALPHA, 1, 300, Ui.STD, 60);
         Anim.set(gearIcon, View.ROTATION, 0);
         gearFocus(true, true);
@@ -900,7 +947,8 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
     }
 
     private void onMinute() {
-        clock.setTime(nowString(), true);
+        clockLight.setTime(nowString(), true);
+        clockDark.setTime(nowString(), true);
         checkWallpaper();
     }
 
@@ -959,6 +1007,7 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
                             }
                             wallpapers.commit(f2);
                             frame = f2;
+                            applyTuning(f2.tuning);
                             wall.setBitmap(f2.sharp);
                             awaitingPhoto = false;
                             if (mode != SETTINGS) Anim.to(wallBlur, View.ALPHA, 0, 900, Ui.OUT, 120);
@@ -991,14 +1040,14 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         Cell(Context c, Bitmap monoMark, Bitmap colorMark, String name) {
             super(c);
             setClipChildren(false);
-            mono = Ui.add(this, new ImageView(c), 56 - Marks.PAD, 34 - Marks.PAD, Marks.SIZE + 2 * Marks.PAD, Marks.SIZE + 2 * Marks.PAD);
+            mono = Ui.add(this, new ImageView(c), 56 - Marks.PAD, 30 - Marks.PAD, Marks.SIZE + 2 * Marks.PAD, Marks.SIZE + 2 * Marks.PAD);
             mono.setImageBitmap(monoMark);
-            color = Ui.add(this, new ImageView(c), 56 - Marks.PAD, 34 - Marks.PAD, Marks.SIZE + 2 * Marks.PAD, Marks.SIZE + 2 * Marks.PAD);
+            color = Ui.add(this, new ImageView(c), 56 - Marks.PAD, 30 - Marks.PAD, Marks.SIZE + 2 * Marks.PAD, Marks.SIZE + 2 * Marks.PAD);
             color.setImageBitmap(colorMark);
             color.setAlpha(0f);
             labelW = label(c, Ui.INK);
             labelW.setShadowLayer(2.6f, 0, 1, 0x40000000);
-            labelW.setAlpha(.64f);
+            labelW.setAlpha(.78f);
             labelK = label(c, Ui.INK_DARK);
             labelK.setAlpha(0);
             labelW.setText(name);
@@ -1006,18 +1055,19 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         }
 
         private TextView label(Context c, int color) {
-            TextView t = Ui.text(c, Ui.text500, 28, color);
+            TextView t = Ui.role(c, Ui.TypeRole.META, color);
             t.setGravity(android.view.Gravity.CENTER);
             // A long app name ends in an ellipsis inside the droplet's rounded corners.
             t.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            return Ui.add(this, t, 14, 146, 208 - 28, 36);
+            Ui.baseline(t, 26);
+            return Ui.add(this, t, 8, 134, 192, 38);
         }
 
         /** Two stacked marks and labels crossfade (alpha only, never a colour animation). */
         void focus(boolean on, boolean animate) {
             go(mono, View.ALPHA, on ? 0 : 1, 200, Ui.STD, 0, animate);
             go(color, View.ALPHA, on ? 1 : 0, 240, Ui.STD, 0, animate);
-            go(labelW, View.ALPHA, on ? 0 : .64f, 200, Ui.STD, 0, animate);
+            go(labelW, View.ALPHA, on ? 0 : .78f, 200, Ui.STD, 0, animate);
             go(labelK, View.ALPHA, on ? 1 : 0, 220, Ui.STD, 0, animate);
             go(this, View.SCALE_X, on ? 1.04f : 1, 260, Ui.STD, 0, animate);
             go(this, View.SCALE_Y, on ? 1.04f : 1, 260, Ui.STD, 0, animate);
@@ -1052,64 +1102,54 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         }
     }
 
-    /** The static scrims: their peak alpha is solved once per wallpaper; only their view alpha animates. */
+    /** Static solved gradients. ComposeShader multiplies alpha without an offscreen full-screen layer. */
     private static final class ScrimView extends View {
-        static final int TOP = 0, BOTTOM = 1, ROW = 2;
+        static final int BOTTOM = 1, ROW = 2;
         private final int kind;
         private final Paint paint = new Paint(Paint.DITHER_FLAG);
-        private float peak = .2f;
-
-        ScrimView(Context c, int kind) {
-            super(c);
-            this.kind = kind;
+        private float peak, targetPeak, right = 600;
+        private ValueAnimator fade;
+        ScrimView(Context c, int kind) { super(c); this.kind = kind; }
+        void setSolution(float alpha, float end) {
+            if (targetPeak == alpha && right == end) return;
+            targetPeak = alpha; right = end;
+            if (fade != null) fade.cancel();
+            if (getWidth() == 0 || !isShown()) {
+                peak = alpha; shade(getWidth(), getHeight()); invalidate(); return;
+            }
+            fade = ValueAnimator.ofFloat(peak, alpha);
+            fade.setDuration(300); fade.setInterpolator(Ui.STD);
+            fade.addUpdateListener(a -> {
+                peak = (float) a.getAnimatedValue();
+                shade(getWidth(), getHeight()); invalidate();
+            });
+            fade.start();
         }
-
-        void setPeak(float p) {
-            peak = p;
-            shade(getWidth(), getHeight());
-            invalidate();
-        }
-
-        @Override
-        protected void onSizeChanged(int w, int h, int ow, int oh) {
-            shade(w, h);
-        }
-
-        private int black(float a) {
-            return Math.round(Math.max(0, Math.min(1, a)) * 255) << 24;
-        }
-
+        @Override protected void onSizeChanged(int w, int h, int ow, int oh) { shade(w, h); }
+        private int black(float alpha) { return Math.round(Math.max(0, Math.min(1, alpha)) * 255) << 24; }
         private void shade(int w, int h) {
             if (w == 0) return;
-            if (kind == TOP) {
-                // Radial, 980 x 460 at the top-right corner: peak, 0.45 × at 42 %, clear at 72 %.
-                RadialGradient g = new RadialGradient(0, 0, 1, new int[]{black(peak), black(peak * .45f), 0, 0},
-                        new float[]{0, .42f, .72f, 1}, Shader.TileMode.CLAMP);
-                Matrix m = new Matrix();
-                m.setScale(w, h);
-                m.postTranslate(w, 0);
-                g.setLocalMatrix(m);
-                paint.setShader(g);
-            } else if (kind == BOTTOM) {
-                // From the bottom: peak, 0.5 × at 18 %, clear at 44 % of the screen.
-                paint.setShader(new LinearGradient(0, h, 0, 0, new int[]{black(peak), black(peak * .5f), 0},
-                        new float[]{0, 18f / 44f, 1}, Shader.TileMode.CLAMP));
-            } else {
-                // From the bottom: peak, 0.8 × at 30 %, 0.35 × at 52 %, clear at 70 %.
-                paint.setShader(new LinearGradient(0, h, 0, 0, new int[]{black(peak), black(peak * .8f), black(peak * .35f), 0},
-                        new float[]{0, 30f / 70f, 52f / 70f, 1}, Shader.TileMode.CLAMP));
+            int[] vertical = new int[10]; float[] stops = new float[10];
+            float flat = kind == BOTTOM ? 160 : 200;
+            for (int i = 0; i <= 8; i++) {
+                float u = i / 8f, k = u * u * (3 - 2 * u);
+                vertical[i] = black(peak * k); stops[i] = flat * u / h;
             }
+            vertical[9] = black(peak); stops[9] = 1;
+            int[] horizontal = new int[10]; float[] xs = new float[10];
+            horizontal[0] = 0xFF000000; xs[0] = 0;
+            // Gradient coordinates can extend past the view; no clamping/distortion of the 640 px tail.
+            float finish = right + 120 + 640;
+            for (int i = 0; i <= 8; i++) {
+                float u = i / 8f, k = u * u * (3 - 2 * u);
+                horizontal[i + 1] = black(1 - k); xs[i + 1] = (right + 120 + 640 * u) / finish;
+            }
+            paint.setShader(new ComposeShader(
+                    new LinearGradient(0, 0, 0, h, vertical, stops, Shader.TileMode.CLAMP),
+                    new LinearGradient(0, 0, finish, 0, horizontal, xs, Shader.TileMode.CLAMP), PorterDuff.Mode.DST_IN));
         }
-
-        @Override
-        protected void onDraw(Canvas c) {
-            c.drawRect(0, 0, getWidth(), getHeight(), paint);
-        }
-
-        @Override
-        public boolean hasOverlappingRendering() {
-            return false;
-        }
+        @Override protected void onDraw(Canvas c) { if (peak > 0) c.drawRect(0, 0, getWidth(), getHeight(), paint); }
+        @Override public boolean hasOverlappingRendering() { return false; }
     }
 
     /** Sets a typeface on part of a text (TypefaceSpan(Typeface) needs API 28). */

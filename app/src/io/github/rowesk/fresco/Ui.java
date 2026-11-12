@@ -2,6 +2,8 @@ package io.github.rowesk.fresco;
 
 import android.content.Context;
 import android.graphics.Matrix;
+import android.graphics.Rect;
+import android.text.Layout;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Build;
@@ -37,6 +39,23 @@ final class Ui {
     static final int INK = 0xFFFFFFFF;
     static final int INK_DARK = 0xFF10151B;
     static final int AMBER = 0xFFFFB25C;
+
+    static final int FRAME_X = 120, FRAME_Y = 80, FRAME_RIGHT = 1800, FRAME_BOTTOM = 1000, MEASURE = 600;
+    static final int TYPE_DISPLAY = 60, LINE_DISPLAY = 72, TYPE_TITLE = 44, LINE_TITLE = 52,
+            TYPE_ROW = 32, LINE_ROW = 40, TYPE_BODY = 26, LINE_BODY = 32, LINE_PARAGRAPH = 38,
+            TYPE_CAPTION = 22, LINE_CAPTION = 28;
+    static final float TRACK_DISPLAY = -1;
+    static final int AMBER_MILK = 0xFFC26A12, TOAST_INK = 0xFFFFF6EC, TOAST_SECONDARY_RGB = 0xFFECD6;
+    static final int SPACE_XS = 8, SPACE_S = 12, SPACE_M = 16, SPACE_L = 24,
+            SPACE_XL = 32, SPACE_2XL = 48, SPACE_3XL = 80, SPACE_4XL = 120;
+    static final float GLASS_1 = 1, GLASS_2 = .78f, GLASS_3 = .62f,
+            PHOTO_1 = 1, PHOTO_2 = .86f, MILK_1 = 1, MILK_2 = .70f, TRACK = .24f;
+    static final int ICON_INLINE = 24, ICON_ROW = 32, ICON_GEAR = 36;
+    static final float ICON_STROKE = 2.5f;
+    static final int R_DOCK = 64, R_DOCK_DROP = 52, R_SHEET = 48, R_ROW_DROP = 36,
+            R_THUMB = 20, R_PREVIEW = 24, R_PREVIEW_DROP = 16, R_TOAST = 48,
+            R_DISC = 32, R_SWITCH = 21, R_KNOB = 16, R_GEAR = 40, R_POSTER = 22, R_TRACK = 5;
+    enum TypeRole { DISPLAY, TITLE, ROW_LABEL, ROW_VALUE, BODY, META, EYEBROW, CAPTION, PARAGRAPH }
 
     static Typeface display400, display500, text400, text500, text600;
 
@@ -76,12 +95,78 @@ final class Ui {
         t.setTypeface(face);
         t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px);
         t.setTextColor(color);
+        t.setFontFeatureSettings("tnum");
         t.setIncludeFontPadding(false);
         t.setSingleLine(true);
         t.setFocusable(false);
         t.setGravity(Gravity.CENTER_VERTICAL);
         return t;
     }
+
+    /** The five type roles, with explicit weights and single-line/paragraph rhythm. */
+    static TextView role(Context c, TypeRole role, int color) {
+        Typeface face = text500;
+        int size = TYPE_BODY, line = LINE_BODY;
+        switch (role) {
+            case DISPLAY: face = display400; size = TYPE_DISPLAY; line = LINE_DISPLAY; break;
+            case TITLE: face = display500; size = TYPE_TITLE; line = LINE_TITLE; break;
+            case ROW_LABEL: size = TYPE_ROW; line = LINE_ROW; break;
+            case ROW_VALUE: face = text400; size = TYPE_ROW; line = LINE_ROW; break;
+            case BODY: case PARAGRAPH: face = text400; break;
+            case EYEBROW: face = text600; break;
+            case CAPTION: size = TYPE_CAPTION; line = LINE_CAPTION; break;
+            default: break;
+        }
+        TextView t = text(c, face, size, color);
+        t.setLetterSpacing(role == TypeRole.DISPLAY ? TRACK_DISPLAY / TYPE_DISPLAY : 0);
+        if (role == TypeRole.PARAGRAPH) {
+            t.setSingleLine(false);
+            t.setMaxLines(3);
+            t.setBreakStrategy(Layout.BREAK_STRATEGY_BALANCED);
+            t.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE);
+            line = LINE_PARAGRAPH;
+        }
+        lineHeight(t, line);
+        return t;
+    }
+
+    /** Position a single line by baseline within its box, independent of font ascenders/descenders. */
+    static void baseline(TextView t, int baseline) {
+        t.setGravity(Gravity.TOP | (t.getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK));
+        t.setPadding(t.getPaddingLeft(), 0, t.getPaddingRight(), 0);
+        t.setFirstBaselineToTopHeight(baseline);
+    }
+
+    /** Place a complete line by an absolute baseline; useful for settings' cap-height rhythm. */
+    static TextView baseline(FrameLayout parent, TextView t, int x, float base, int width, boolean optical) {
+        t.setGravity(Gravity.TOP | Gravity.LEFT);
+        t.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        add(parent, t, x, Math.round(base - t.getBaseline()), width, t.getMeasuredHeight());
+        if (optical) opticalLeft(t);
+        return t;
+    }
+
+    static TextView capCentered(FrameLayout parent, TextView t, int x, int width, int height) {
+        return baseline(parent, t, x, height / 2f + capHeight(t.getPaint()) / 2, width, false);
+    }
+
+    static float capHeight(android.graphics.Paint p) {
+        Rect b = new Rect();
+        p.getTextBounds("H", 0, 1, b);
+        return -b.top;
+    }
+
+    /** Optical offset only; apply it in addition to any motion translation. */
+    static float opticalOffset(TextView t, CharSequence text) {
+        if (text == null || text.length() == 0) return 0;
+        String first = text.subSequence(0, Character.charCount(Character.codePointAt(text, 0))).toString();
+        Rect b = new Rect();
+        t.getPaint().getTextBounds(first, 0, first.length(), b);
+        return -b.left;
+    }
+
+    static void opticalLeft(TextView t) { t.setTranslationX(opticalOffset(t, t.getText())); }
 
     /** CSS line-height for multi-line text. TextView.setLineHeight needs API 28. */
     static void lineHeight(TextView t, int px) {

@@ -71,7 +71,7 @@ Fresco's settings are on the TV: the cog at the top right of its home screen. Wa
 
 - **Dock**: the 1–4 apps they actually use.
 - **Wallpapers**: Art, Nature, Abstract, Space or Random.
-- **Remote buttons**: what the Netflix and Prime Video buttons open (default: unchanged), and whether the Amazon Music button toggles the bedtime tint (default: yes).
+- **Remote buttons**: what the Netflix and Prime Video buttons open (default: their own apps), and whether the Amazon Music button toggles the bedtime tint (default: yes).
 - **Bedtime tint**: on or off, when it starts, when it's at full strength, when it turns off, and how strong. Copy-protected apps (Prime Video, iPlayer and others) are skipped automatically, because their video is protected and mustn't be drawn over. The list is editable under *Skip the tint in*.
 
 **Stremio users** can show their Continue watching row on the home screen:

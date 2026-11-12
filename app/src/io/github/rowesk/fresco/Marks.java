@@ -1,6 +1,8 @@
 package io.github.rowesk.fresco;
 
 import android.content.res.AssetManager;
+import android.content.Context;
+import android.util.LruCache;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
@@ -32,6 +34,34 @@ final class Marks {
     static final int PAD = 8;
     /** The monogram letter's size, and the stroke that brings Red Hat Display 500 up to the marks' weight. */
     static final float MONO_TEXT = 42, MONO_BOLD = 2.6f;
+
+    static final int ROW_SIZE = 48, ROW_PAD = 4;
+    private static final LruCache<String, Bitmap[]> rowCache = new LruCache<>(64);
+
+    /** Cached 48 px mono/colour pair, with 4 px transparent padding on all sides (56×56). */
+    static synchronized Bitmap[] row(Context context, String pkg) {
+        Bitmap[] cached = rowCache.get(pkg);
+        if (cached != null) return cached;
+        Bitmap[] large = Apps.marks(context, pkg);
+        Bitmap[] small = {half(large[0]), half(large[1])};
+        for (Bitmap b : large) b.recycle();
+        rowCache.put(pkg, small);
+        return small;
+    }
+
+    static synchronized Bitmap rowStremio(boolean color) {
+        Bitmap[] pair = rowCache.get("@stremio");
+        if (pair == null) {
+            Bitmap mono = stremio(false), brand = stremio(true);
+            pair = new Bitmap[]{half(mono), half(brand)};
+            mono.recycle(); brand.recycle(); rowCache.put("@stremio", pair);
+        }
+        return pair[color ? 1 : 0];
+    }
+
+    private static Bitmap half(Bitmap b) {
+        return Bitmap.createScaledBitmap(b, ROW_SIZE + ROW_PAD * 2, ROW_SIZE + ROW_PAD * 2, true);
+    }
 
     static Bitmap stremio(boolean color) {
         Path shape = new Path();
