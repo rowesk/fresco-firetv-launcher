@@ -92,6 +92,10 @@ final class GlassView extends View {
     int sheen = SHEEN_NORMAL;
     boolean glint;
     private float milkLevel;
+    private boolean dropletLight;
+    private float lensBand = 12;
+    private final Paint dropletRadial = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint dropletBand = new Paint(Paint.ANTI_ALIAS_FLAG);
     private float[] shadowLayers;
     private Shadow.Baked shadow;
 
@@ -133,6 +137,28 @@ final class GlassView extends View {
         setWillNotDraw(false);
     }
 
+    /** Opt in only for the wide settings row droplet; other glass keeps its existing material. */
+    void setDropletLight(boolean on) {
+        dropletLight = on;
+        if (on) { mag = 1.10f; setShadow(10, 26, .20f); }
+        updateDropletLight(getWidth(), getHeight());
+        invalidate();
+    }
+
+    /** Miniature dock previews use a 4 px lens band; the full dock retains 12 px. */
+    void setLensBand(float pixels) { lensBand = pixels; lens.setStrokeWidth(pixels); invalidate(); }
+
+    private void updateDropletLight(int w, int h) {
+        if (w == 0 || h == 0) return;
+        RadialGradient rg = new RadialGradient(0, 0, 1, Ui.white(.30f), Ui.white(0), Shader.TileMode.CLAMP);
+        Matrix m = new Matrix(); m.setScale(.30f * w, h); m.postTranslate(.34f * w, 0);
+        rg.setLocalMatrix(m);
+        dropletRadial.setShader(rg);
+        dropletBand.setShader(new LinearGradient(0, 0, 0, h,
+                new int[]{Ui.white(.20f), Ui.white(.06f), 0, 0, 0x12000000},
+                new float[]{0, .22f, .40f, .86f, 1}, Shader.TileMode.CLAMP));
+    }
+
     /** Milk glass: the focus material. `level` fades it (gear focus); the droplets stay at 1. */
     void setMilk(float milk, float level) {
         this.milk = milk;
@@ -169,6 +195,7 @@ final class GlassView extends View {
     protected void onSizeChanged(int w, int h, int ow, int oh) {
         shadow = null;
         rimVersion = -1;
+        updateDropletLight(w, h);
         float[] stops;
         int[] colors;
         if (sheen == SHEEN_SOFT) {
@@ -226,8 +253,8 @@ final class GlassView extends View {
             drawWallpaper(c, fill, shaderBlur, blur, mag, 255, 0, w, h, r);
             if (shaderNext != null && nextMix > 0) drawWallpaper(c, fill, shaderNext, next, mag, Math.round(nextMix * 255), 0, w, h, r);
             if (lensBlur != null) {
-                drawWallpaper(c, lens, lensBlur, blur, lensMag, Math.round(.70f * 255), 6, w, h, r);
-                if (lensNext != null && nextMix > 0) drawWallpaper(c, lens, lensNext, next, lensMag, Math.round(.70f * nextMix * 255), 6, w, h, r);
+                drawWallpaper(c, lens, lensBlur, blur, lensMag, Math.round(.70f * 255), lensBand / 2, w, h, r);
+                if (lensNext != null && nextMix > 0) drawWallpaper(c, lens, lensNext, next, lensMag, Math.round(.70f * nextMix * 255), lensBand / 2, w, h, r);
             }
         } else {
             plain.setColor(0xFF1A1F26);
@@ -249,6 +276,10 @@ final class GlassView extends View {
         if (milk > 0 && milkLevel > 0) {
             plain.setColor(Ui.white(milk * milkLevel));
             c.drawRoundRect(0, 0, w, h, r, r, plain);
+        }
+        if (dropletLight) {
+            c.drawRoundRect(0, 0, w, h, r, r, dropletBand);
+            c.drawRoundRect(0, 0, w, h, r, r, dropletRadial);
         }
         // 7. Glint.
         if (glint) c.drawRoundRect(0, 0, w, h, r, r, glintPaint);

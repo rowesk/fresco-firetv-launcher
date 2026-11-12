@@ -40,8 +40,8 @@ final class Wallpapers {
 
     static final int MORNING = WallpaperStyle.MORNING, DAY = WallpaperStyle.DAY,
             EVENING = WallpaperStyle.EVENING, NIGHT = WallpaperStyle.NIGHT;
-    /** Settings thumbnails: 1920x1080 decoded at 1/16 is 120x68, about 32 KB each. */
-    private static final int THUMB_SAMPLE = 16;
+    /** Settings thumbnails: 1920x1080 decoded at 1/8 is 240x135 (2× the previous thumbnails). */
+    private static final int THUMB_SAMPLE = 8;
     /** If the service decoded early for a Home press that never reached us, let it go after this. */
     private static final long PREWARM_HOLD_MS = 4000;
 
@@ -231,7 +231,7 @@ final class Wallpapers {
     /** For the wallpaper change: decode the sharp photo into a frame that already has its blur. */
     void loadSharp(final Frame f, final Callback cb) {
         worker.post(() -> {
-            Bitmap b = decodeSharp(f.key);
+            Bitmap b = decodeSharp(f);
             main.post(() -> {
                 f.sharp = b;
                 cb.done(f);
@@ -261,8 +261,8 @@ final class Wallpapers {
             long t0 = System.currentTimeMillis();
             Frame f = new Frame(key, WallpaperStyle.periodOfKey(key));
             f.blur = decodeBlur(key);
-            f.tuning = f.blur == null ? Tuning.DEFAULT : new Tuning(f.blur);
-            if (withSharp) f.sharp = decodeSharp(key);
+            f.tuning = f.blur == null ? new Tuning() : new Tuning(f.blur);
+            if (withSharp) f.sharp = decodeSharp(f);
             Log.i(TAG, "wallpaper " + key + (withSharp ? "" : " (blur only)") + " decoded in "
                     + (System.currentTimeMillis() - t0) + " ms");
             main.post(() -> cb.done(f));
@@ -309,18 +309,21 @@ final class Wallpapers {
         return null;
     }
 
-    private Bitmap decodeSharp(String key) {
-        String path = find(key, false);
+    private Bitmap decodeSharp(Frame f) {
+        String path = find(f.key, false);
         if (path == null) return null;
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inScaled = false;
-        // A hardware bitmap lives only in graphics memory, so the photo costs 8.3 MB once instead of
-        // twice (a CPU copy plus its GPU texture). We never read its pixels; glass reads the blur.
-        if (Build.VERSION.SDK_INT >= 26) o.inPreferredConfig = Bitmap.Config.HARDWARE;
+        // Sample the exact sharp pixels on the wallpaper worker before moving the photo to GPU memory.
+        // Only the small percentile samples survive; no CPU photo is retained while home is idle.
+        o.inPreferredConfig = Bitmap.Config.ARGB_8888;
         Bitmap b = decode(path, o);
-        if (b == null && Build.VERSION.SDK_INT >= 26) {
-            o.inPreferredConfig = Bitmap.Config.ARGB_8888;
-            b = decode(path, o);
+        if (b != null) {
+            f.tuning.samplePicture(b);
+            if (Build.VERSION.SDK_INT >= 26) {
+                Bitmap gpu = b.copy(Bitmap.Config.HARDWARE, false);
+                if (gpu != null) { b.recycle(); b = gpu; }
+            }
         }
         return b;
     }
@@ -418,7 +421,14 @@ final class Wallpapers {
         float meanL, frost = .06f;
         float dock = .22f, gear = .22f, sheet = .30f;
         float milk = .66f, milkGear = .66f, milkSheet = .5f;
-        float scrimTop = .2f, scrimBottom = .2f, scrimRow = .45f, scrimSettings = .3f;
+        // Legacy bottom names remain aliases for callers using the original API.
+        float scrimBottom, scrimRow, scrimSettings = .3f;
+        public float rowMilk = .74f;
+        public boolean clockDark, peekDark, rowDark;
+        public float peekScrim, rowScrim;
+        public double peekContrast, rowTitleContrast, rowMetaContrast, clockWorst, clockMedian;
+        public float peekRight = 620, titleRight = 570, metaRight = 430, rowRight = 570;
+        private double[][][] clockPixels, peekPixels, titlePixels, metaPixels;
         private double[][] grid;
 
         private Tuning() {}
@@ -432,9 +442,6 @@ final class Wallpapers {
 
         Tuning(Bitmap blur) {
             solve(grid(blur));
-            Log.i(TAG, String.format(java.util.Locale.ROOT,
-                    "glass: meanL %.2f frost %.3f dock %.2f gear %.2f sheet %.2f milk %.2f/%.2f/%.2f scrims %.2f %.2f %.2f %.2f",
-                    meanL, frost, dock, gear, sheet, milk, milkGear, milkSheet, scrimTop, scrimBottom, scrimRow, scrimSettings));
         }
 
         /** Takes the 32x18 grid, row-major, as sRGB triples. */
@@ -448,25 +455,22 @@ final class Wallpapers {
             solveDock();
             List<double[]> gc = cells(1720, 80, 80, 80);
             gear = tintFor(gc, 3.0, frost, 1, .9);
-            scrimSettings = scrimFor(cells(120, 96, 620, 720), 4.5, .22, 1);
+            scrimSettings = scrimFor(cells(120, 80, 600, 560), 5.2, .22, .86, 1);
             // The sheet draws the raw blur (the settings scrim is behind it) and rows scroll anywhere, so
             // solve against its brightest cell; its frost includes the 8 % sheen under the first rows.
-            List<double[]> sc = cells(800, 72, 1000, 936);
+            List<double[]> sc = cells(800, 80, 1000, 920);
             float sf = frost * .6f + .08f;
             sheet = Math.max(.16f, Math.max(tintFor(sc, 4.5, sf, .78, 1), tintFor(sc, 3.0, sf, .62, 1)));
             milkGear = milkFor(gc, nightish ? .36 : .60);
-            milkSheet = milkFor(sc, nightish ? .28 : .42);
-            // Text straight on the sharp photo: the blur under-reports bright detail, so these targets run higher.
-            scrimTop = scrimFor(cells(1380, 80, 320, 80), 4.5, .14, .82);
-            scrimBottom = scrimFor(cells(120, 960, 760, 48), 6, .16, .82);
-            scrimRow = scrimFor(cells(120, 596, 900, 110), 6, .34, .66);
+            rowMilk = milkEven(sc, nightish ? .42 : .62, nightish ? .62 : .74);
+            milkSheet = rowMilk;
         }
 
         /** The dock's glass and droplet, over whatever the dock covers at its current width. */
         void solveDock() {
             if (grid == null) return;
             List<double[]> dc = cells(120, 712, dockWidth, 232);
-            dock = Math.max(tintFor(dc, 4.5, frost, 1, .9), tintFor(dc, 3.0, frost, .64, .9)); // labels are 64 % white
+            dock = Math.max(tintFor(dc, 4.5, frost, 1, .9), tintFor(dc, 3.2, frost, .62, 1)); // 78 % resting labels, 62 % dimmed ink guarantee
             milk = milkFor(dc, meanL < .07 ? .30 : .50);
         }
 
@@ -546,10 +550,145 @@ final class Wallpapers {
             return (float) Math.min(.78, Math.max(.10, a));
         }
 
-        private static float scrimFor(List<double[]> cs, double target, double min, double falloff) {
-            double[] p = pct(cs, .9);
-            double a = solve(t -> mix(p, BLACK, t), 0, .9, c -> 1.05 / (lum(c) + .05) >= target);
-            return (float) Math.min(.86, Math.max(min, a / falloff));
+        private static float scrimFor(List<double[]> cs, double target, double min, double ink, double q) {
+            double[] p = pct(cs, q);
+            double a = solve(t -> mix(p, BLACK, t), 0, .9, c -> (lum(mix(c, WHITE, ink)) + .05) / (lum(c) + .05) >= target);
+            return (float) Math.min(.86, Math.max(min, a));
+        }
+
+        private static float milkEven(List<double[]> cs, double target, double floor) {
+            double[] p = pct(cs, .1);
+            return (float) Math.min(.92, Math.max(floor, solve(t -> mix(p, WHITE, t), 0, 1, c -> lum(c) >= target)));
+        }
+
+        boolean hasPictureSamples() { return clockPixels != null; }
+
+        /** Sharp-picture samples: each window holds {p90, p10, p50} sRGB pixels. */
+        void samplePicture(Bitmap b) {
+            double[] xs = {1527.2, 1563.2, 1599.2, 1616, 1652};
+            double[] ws = {36, 36, 16.8, 36, 36};
+            clockPixels = new double[5][][];
+            for (int i = 0; i < 5; i++) clockPixels[i] = window(b, (int) Math.round(xs[i]), 98,
+                    (int) Math.round(xs[i] + ws[i]) - (int) Math.round(xs[i]), 44);
+            peekPixels = lineWindows(b, 968, 32);
+            titlePixels = lineWindows(b, 569, 52);
+            metaPixels = lineWindows(b, 629, 32);
+            solveBottom(peekRight, titleRight, metaRight);
+            solveClock(0);
+        }
+
+        private static double[][][] lineWindows(Bitmap b, int y, int h) {
+            // Extend the mock's x=1000 fixture span to the entire usable frame for real long titles.
+            double[][][] out = new double[(1800 - 120 - 64) / 32 + 1][][];
+            for (int i = 0; i < out.length; i++) out[i] = window(b, 120 + i * 32, y, 64, h);
+            return out;
+        }
+
+        private static final double[] LINEAR = new double[256];
+        static { for (int i = 0; i < 256; i++) LINEAR[i] = lin(i); }
+        private static double pixelL(int c) {
+            return .2126 * LINEAR[(c >> 16) & 255] + .7152 * LINEAR[(c >> 8) & 255] + .0722 * LINEAR[c & 255];
+        }
+        private static double[][] window(Bitmap b, int x, int y, int w, int h) {
+            int[] px = new int[w * h];
+            b.getPixels(px, 0, w, x, y, w, h);
+            double[] l = new double[px.length];
+            for (int i = 0; i < px.length; i++) l[i] = pixelL(px[i]);
+            double[] sorted = l.clone();
+            java.util.Arrays.sort(sorted);
+            double[][] out = new double[3][];
+            double[] qs = {.9, .1, .5};
+            for (int q = 0; q < 3; q++) {
+                double at = qs[q] * (sorted.length - 1);
+                int lo = (int) at, hi = Math.min(sorted.length - 1, lo + 1);
+                double target = sorted[lo] + (sorted[hi] - sorted[lo]) * (at - lo);
+                int best = 0;
+                for (int i = 1; i < px.length; i++) if (Math.abs(l[i] - target) < Math.abs(l[best] - target)) best = i;
+                int c = px[best];
+                out[q] = new double[]{(c >> 16) & 255, (c >> 8) & 255, c & 255};
+            }
+            return out;
+        }
+
+        /** Mac checks feed identical sharp-window samples through the production solver. */
+        static Tuning fromSamples(double[][] grid, double[][][] clock, double[][][] peek,
+                                  double[][][] title, double[][][] meta) {
+            Tuning t = fromGrid(grid);
+            t.clockPixels = clock; t.peekPixels = peek; t.titlePixels = title; t.metaPixels = meta;
+            return t;
+        }
+
+        /** Re-solve once when content changes, using the widest title/meta in the whole row. */
+        void solveBottom(float peekEnd, float titleEnd, float metaEnd) {
+            peekRight = peekEnd; titleRight = titleEnd; metaRight = metaEnd;
+            rowRight = Math.max(titleEnd, metaEnd);
+            if (peekPixels == null) return;
+            TextSolve p = solveText(new double[][][]{linePixels(peekPixels, peekEnd)}, new double[]{.86}, new double[]{4.5}, 0, true);
+            TextSolve r = solveText(new double[][][]{linePixels(titlePixels, titleEnd), linePixels(metaPixels, metaEnd)},
+                    new double[]{1, .86}, new double[]{3, 4.5}, 0, true);
+            peekDark = p.dark; peekScrim = scrimBottom = p.alpha;
+            rowDark = r.dark; rowScrim = scrimRow = r.alpha;
+            peekContrast = solvedContrast(linePixels(peekPixels, peekEnd), peekDark, peekScrim, .86);
+            rowTitleContrast = solvedContrast(linePixels(titlePixels, titleEnd), rowDark, rowScrim, 1);
+            rowMetaContrast = solvedContrast(linePixels(metaPixels, metaEnd), rowDark, rowScrim, .86);
+        }
+
+        private static double[][] linePixels(double[][][] windows, float right) {
+            double[] hi = windows[0][0], lo = windows[0][1];
+            for (int i = 1; i < windows.length && 120 + i * 32 + 32 <= right; i++) {
+                if (lum(windows[i][0]) > lum(hi)) hi = windows[i][0];
+                if (lum(windows[i][1]) < lum(lo)) lo = windows[i][1];
+            }
+            return new double[][]{hi, lo};
+        }
+
+        /** Ten sampled pixels; cheap enough to re-evaluate on each actual tint step. */
+        boolean solveClock(float tintAlpha) {
+            if (clockPixels != null) clockDark = solveText(clockPixels, new double[]{1, 1, .86, 1, 1},
+                    new double[]{3, 3, 3, 3, 3}, tintAlpha, false).dark;
+            if (clockPixels != null) {
+                clockWorst = Double.POSITIVE_INFINITY;
+                List<double[]> mids = new ArrayList<>();
+                for (int i = 0; i < 5; i++) {
+                    clockWorst = Math.min(clockWorst, contrast(clockPixels[i][clockDark ? 1 : 0], clockDark, i == 2 ? .86 : 1, tintAlpha));
+                    mids.add(clockPixels[i][2]);
+                }
+                clockMedian = contrast(pct(mids, .5), clockDark, 1, tintAlpha);
+            }
+            return clockDark;
+        }
+
+        private static double solvedContrast(double[][] samples, boolean dark, float alpha, double level) {
+            return contrast(mix(samples[dark ? 1 : 0], BLACK, alpha), dark, level, 0);
+        }
+
+        private static final double[] PICTURE_DARK = {16, 21, 27}, TINT_RGB = {31, 12, 1};
+        private static double contrast(double[] bg, boolean dark, double level, double tint) {
+            double[] fg = mix(bg, dark ? PICTURE_DARK : WHITE, level);
+            if (tint > 0) { fg = mix(fg, TINT_RGB, tint); bg = mix(bg, TINT_RGB, tint); }
+            double a = lum(fg), b = lum(bg);
+            return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+        }
+        private static final class TextSolve { boolean dark; float alpha; }
+        private static TextSolve solveText(double[][][] runs, double[] levels, double[] targets, double tint, boolean gradient) {
+            double light = Double.POSITIVE_INFINITY, dark = Double.POSITIVE_INFINITY;
+            for (int i = 0; i < runs.length; i++) {
+                light = Math.min(light, contrast(runs[i][0], false, levels[i], tint) / targets[i]);
+                dark = Math.min(dark, contrast(runs[i][1], true, levels[i], tint) / targets[i]);
+            }
+            TextSolve out = new TextSolve();
+            out.dark = dark > light;
+            if (!gradient || Math.max(light, dark) >= 1) return out;
+            double lo = 0, hi = .95;
+            for (int j = 0; j < 14; j++) {
+                double a = (lo + hi) / 2;
+                boolean ok = true;
+                for (int i = 0; i < runs.length; i++) if (contrast(mix(runs[i][0], BLACK, a), false, levels[i], 0) < targets[i] + .1) ok = false;
+                if (ok) hi = a; else lo = a;
+            }
+            out.dark = false;
+            out.alpha = (float) (Math.ceil(hi * 255) / 255);
+            return out;
         }
 
         private static float milkFor(List<double[]> cs, double target) {

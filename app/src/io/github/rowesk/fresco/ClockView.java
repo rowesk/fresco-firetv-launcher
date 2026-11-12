@@ -21,17 +21,20 @@ final class ClockView extends View {
     private final boolean[] rolling = new boolean[4];
     private float t = 1; // ms into the roll / 400
     private ValueAnimator roll;
+    private final float capHeight;
 
     ClockView(Context context) {
         super(context);
         paint.setTypeface(Ui.display400);
         paint.setTextSize(60);
         paint.setColor(Ui.INK);
-        paint.setLetterSpacing(-.01f);
+        paint.setLetterSpacing(-1f / 60);
         paint.setFontFeatureSettings("tnum");
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setShadowLayer(14.7f, 0, 2, 0x4D000000);
+        capHeight = Ui.capHeight(paint);
     }
+
+    void setInk(int color) { paint.setColor(color); invalidate(); }
 
     void setTime(String hhmm, boolean animate) {
         char[] next = {hhmm.charAt(0), hhmm.charAt(1), hhmm.charAt(3), hhmm.charAt(4)};
@@ -61,8 +64,7 @@ final class ClockView extends View {
     @Override
     protected void onDraw(Canvas c) {
         float h = getHeight();
-        Paint.FontMetrics fm = paint.getFontMetrics();
-        float base = h / 2 - (fm.ascent + fm.descent) / 2;
+        float base = h / 2 + capHeight / 2;
         float x = getWidth() - (4 * DIGIT_W + COLON_W);
         for (int i = 0; i < 4; i++) {
             float left = x + i * DIGIT_W + (i >= 2 ? COLON_W : 0);
@@ -78,7 +80,7 @@ final class ClockView extends View {
             }
             c.restore();
             if (i == 1) {
-                paint.setAlpha(Math.round(.9f * 255));
+                paint.setAlpha(Math.round(.86f * 255));
                 c.drawText(":", left + DIGIT_W + COLON_W / 2, base - 4, paint);
             }
         }

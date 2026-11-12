@@ -21,7 +21,7 @@ import android.widget.ImageView;
  * (DESIGN.md §8 "Poster"):
  *   this: x nudge, alpha, dip offset
  *     shadow: alpha, translationY, scale
- *     lift: translationY, scale (pivot 50 % / 60 %)
+ *     lift: translationY, scale (pivot top-left)
  *       tilt: rotationY
  *         img (clipped, radius 22): art (translationX, scale), bottom gradient
  *         chrome (edge + progress), rimf (alpha)
@@ -41,16 +41,16 @@ final class PosterView extends FrameLayout {
         setClipChildren(false);
         shadow = new ShadowView(context, W - 12, H - 10, R, new float[]{26, 52, .55f, 8, 18, .25f});
         Ui.add(this, shadow, 6, 10, W - 12, H - 10);
-        shadow.setPivotX((W - 12) / 2f);
-        shadow.setPivotY(H - 10);
+        shadow.setPivotX(0);
+        shadow.setPivotY(0);
         shadow.setAlpha(0);
         shadow.setScaleX(.94f);
         shadow.setScaleY(.94f);
 
         lift = Ui.add(this, new FrameLayout(context), 0, 0, W, H);
         lift.setClipChildren(false);
-        lift.setPivotX(W * .5f);
-        lift.setPivotY(H * .6f);
+        lift.setPivotX(0);
+        lift.setPivotY(0);
         tilt = Ui.add(lift, new FrameLayout(context), 0, 0, W, H);
         tilt.setCameraDistance(8000 * context.getResources().getDisplayMetrics().density);
 
@@ -139,8 +139,8 @@ final class PosterView extends FrameLayout {
             float w = getWidth(), h = getHeight();
             c.drawRoundRect(.75f, .75f, w - .75f, h - .75f, R - .75f, R - .75f, edge);
             if (progress < 0) return;
-            float l = 14, r = w - 14, b = h - 14, t = b - 6;
-            bar.setColor(Ui.white(.30f));
+            float l = 16, r = w - 16, b = h - 16, t = b - 6;
+            bar.setColor(Ui.white(.24f));
             c.drawRoundRect(l, t, r, b, 3, 3, bar);
             if (progress > 0) {
                 bar.setColor(Ui.INK);

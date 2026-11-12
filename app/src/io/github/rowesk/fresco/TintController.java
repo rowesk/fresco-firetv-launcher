@@ -56,6 +56,20 @@ final class TintController implements SharedPreferences.OnSharedPreferenceChange
      */
     static final boolean MUSIC_USES_STRENGTH_SETTING = true;
 
+    interface PictureListener { void changed(float alpha); }
+    private static PictureListener pictureListener;
+    private static float pictureAlpha;
+    static float pictureAlpha() { return pictureAlpha; }
+    static void setPictureListener(PictureListener listener) {
+        pictureListener = listener;
+        if (listener != null) listener.changed(pictureAlpha);
+    }
+    private static void notifyPicture(float alpha) {
+        if (pictureAlpha == alpha) return;
+        pictureAlpha = alpha;
+        if (pictureListener != null) pictureListener.changed(alpha);
+    }
+
     private static final long RAMP_TICK_MS = 1000;
     private static final long IDLE_TICK_MS = 30_000;
 
@@ -285,10 +299,12 @@ final class TintController implements SharedPreferences.OnSharedPreferenceChange
         shown = a;
         if (a <= .002f) {
             removeTint();
+            notifyPicture(0);
             return;
         }
         if (tintView == null) addTint();
-        if (tintView == null) return;
+        if (tintView == null) { notifyPicture(0); return; }
+        notifyPicture(a);
         if (WINDOW_ALPHA) {
             if (Math.abs(tintLp.alpha - a) >= 1 / 512f) {
                 tintLp.alpha = a;
@@ -415,7 +431,7 @@ final class TintController implements SharedPreferences.OnSharedPreferenceChange
                             | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                     PixelFormat.TRANSLUCENT);
             lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-            lp.y = 56 - M;
+            lp.y = 80 - M;
             lp.windowAnimations = 0;
             lp.setTitle("Fresco toast");
             try {
@@ -437,9 +453,9 @@ final class TintController implements SharedPreferences.OnSharedPreferenceChange
             pill = new LinearLayout(service);
             pill.setOrientation(LinearLayout.HORIZONTAL);
             pill.setGravity(Gravity.CENTER_VERTICAL);
-            pill.setPadding(20, 0, 44, 0);
+            pill.setPadding(16, 0, 32, 0);
             pill.setBackground(new PillDrawable());
-            frame.addView(pill, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, 100));
+            frame.addView(pill, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, 96));
 
             FrameLayout discView = new FrameLayout(service);
             disc = new GradientDrawable();
@@ -448,17 +464,19 @@ final class TintController implements SharedPreferences.OnSharedPreferenceChange
             moon = new ImageView(service);
             discView.addView(moon, new FrameLayout.LayoutParams(32, 32, Gravity.CENTER));
             LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(64, 64);
-            dlp.rightMargin = 22;
+            dlp.rightMargin = 24;
             pill.addView(discView, dlp);
 
-            LinearLayout txt = new LinearLayout(service);
-            txt.setOrientation(LinearLayout.VERTICAL);
-            t1 = Ui.text(service, Ui.text500, 30, 0xFFFFF6EC);
-            t2 = Ui.text(service, Ui.text400, 24, Ui.withAlpha(0xFFECD6, .66f));
-            t2.setFontFeatureSettings("tnum");
-            txt.addView(t1, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 38));
-            txt.addView(t2, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 32));
-            pill.addView(txt, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            FrameLayout txt = new FrameLayout(service);
+            t1 = Ui.role(service, Ui.TypeRole.ROW_LABEL, 0xFFFFF6EC);
+            t2 = Ui.role(service, Ui.TypeRole.BODY, Ui.withAlpha(0xFFECD6, .78f));
+            float capT = Ui.capHeight(t1.getPaint()), capB = Ui.capHeight(t2.getPaint());
+            float top = (96 - capT - 12 - capB) / 2;
+            Ui.baseline(t1, Math.round(top + capT));
+            Ui.baseline(t2, Math.round(top + capT + 12 + capB));
+            txt.addView(t1, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, 96));
+            txt.addView(t2, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, 96));
+            pill.addView(txt, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 96));
         }
     }
 

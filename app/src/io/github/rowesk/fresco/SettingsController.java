@@ -12,30 +12,26 @@ import android.graphics.LinearGradient;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.Shader;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
-import android.text.format.DateUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Launcher settings: heading and context column on the left, one glass sheet on the right holding
- * the main page and its sub-pages ("Dock" and its app picker, "Wallpapers", "Skip the tint in" and its
- * app picker, and a picker for each remappable remote button). Built to the approved prototype: the
- * droplet, the 150 px focus band, the schedule fold, push/pop pages, sliding values.
+ * six destinations and their sub-pages. Layout follows the refined handoff: content-sized fixed
+ * glass panes, whole-row scrolling, the schedule fold, push/pop pages and sliding values.
  *
  * The sheet content scrolls by translationY only; layout changes once at the end of a fold.
  */
@@ -53,10 +49,10 @@ final class SettingsController {
 
     static final int UP = 1, DOWN = 2, LEFT = 3, RIGHT = 4, SELECT = 5, BACK = 6;
 
-    private static final int SHEET_W = 1000, SHEET_H = 936, ROW_H = 88, BAND = 150;
+    private static final int SHEET_W = 1000, SHEET_H = 920, ROW_H = 88;
     private static final String MAIN = "main", SKIP = "skip", PICK = "pick", WALLS = "walls",
-            DOCK = "dock", DOCK_ADD = "dockadd", BUTTON = "button:";
-    private static final int THUMB_W = 112, THUMB_H = 63;
+            TINT = "tint", REMOTE = "remote", DOCK = "dock", DOCK_ADD = "dockadd", BUTTON = "button:";
+    private static final int THUMB_W = 208, THUMB_H = 116;
 
     private final Context ctx;
     private final Host host;
@@ -65,7 +61,13 @@ final class SettingsController {
     private final Wallpapers wallpapers;
     final FrameLayout root;
     private final FrameLayout left, context, sheetGroup, page, scroll, rowsBox, dropBump;
-    private final GlassView sheetGlass, drop;
+    private GlassView sheetGlass;
+    private final GlassView drop;
+    private final java.util.Map<Integer, GlassView> sheets = new java.util.HashMap<>();
+    private Wallpapers.Tuning tuning;
+    private final SettingsPreviewTuning previewTuning = new SettingsPreviewTuning();
+    private int sheetHeight = SHEET_H;
+    private boolean removeArmed;
     private final Viewport viewport;
 
     private final List<Row> rows = new ArrayList<>();
@@ -102,22 +104,14 @@ final class SettingsController {
         stremio = StremioClient.get(context);
         wallpapers = Wallpapers.get(context);
 
-        left = Ui.add(root, new FrameLayout(context), 120, 96, 600, 900);
-        TextView h1 = Ui.text(context, Ui.display400, 56, Ui.INK);
-        h1.setText("Launcher settings");
-        h1.setLetterSpacing(-.01f);
-        h1.setShadowLayer(13, 0, 2, 0x4D000000);
-        // 80 tall, centred on the old 64 px box, so descenders (the g) aren't clipped.
+        left = Ui.add(root, new FrameLayout(context), 120, 0, 600, 1000);
         left.setClipChildren(false);
-        Ui.add(left, h1, 0, -8, 600, 80);
-        this.context = Ui.add(left, new FrameLayout(context), 0, 184, 600, 700);
+        this.context = Ui.add(left, new FrameLayout(context), 0, 0, 600, 1000);
+        this.context.setClipChildren(false);
 
-        sheetGroup = Ui.add(root, new FrameLayout(context), 800, 72, SHEET_W, SHEET_H);
+        sheetGroup = Ui.add(root, new FrameLayout(context), 800, 80, SHEET_W, SHEET_H);
         sheetGroup.setClipChildren(false);
-        sheetGlass = Ui.add(sheetGroup, new GlassView(context, 48), 0, 0, SHEET_W, SHEET_H);
-        sheetGlass.mag = 1.03f;
-        sheetGlass.sheen = GlassView.SHEEN_SOFT;
-        sheetGlass.setShadow(24, 60, .30f);
+
         viewport = Ui.add(sheetGroup, new Viewport(context), 0, 0, SHEET_W, SHEET_H);
         page = Ui.add(viewport, new FrameLayout(context), 0, 0, SHEET_W, SHEET_H);
         page.setClipChildren(false);
@@ -125,9 +119,10 @@ final class SettingsController {
         scroll.setClipChildren(false);
         dropBump = Ui.add(scroll, new FrameLayout(context), 0, 0, SHEET_W, ROW_H);
         dropBump.setClipChildren(false);
-        drop = Ui.add(dropBump, new GlassView(context, 34), 14, 0, 972, ROW_H);
-        drop.mag = 1.06f;
-        drop.setShadow(8, 22, .18f);
+        drop = Ui.add(dropBump, new GlassView(context, 36), 12, 0, 976, ROW_H);
+        drop.mag = 1.10f;
+        drop.setShadow(10, 26, .20f);
+        drop.setDropletLight(true);
         rowsBox = Ui.add(scroll, new FrameLayout(context), 0, 0, SHEET_W, 4000);
         rowsBox.setClipChildren(false);
         root.setVisibility(View.GONE);
@@ -136,9 +131,41 @@ final class SettingsController {
     boolean isOpen() { return open; }
 
     void applyTuning(Wallpapers.Tuning t) {
+        tuning = t;
         root.setBackgroundColor(Ui.withAlpha(0x04080C, t.scrimSettings));
-        sheetGlass.setTint(t.sheet, t.frost * .6f);
-        drop.setMilk(t.milkSheet, 1);
+        for (GlassView glass : sheets.values()) glass.setTint(t.sheet, t.frost * .6f);
+        drop.setMilk(t.rowMilk, 1);
+        if (open && current() != null) { ctxSec = null; setContext(current().section, false); }
+    }
+
+    /** Each size is rasterised once; page/fold transitions only cross-fade these fixed panes. */
+    private void sizeSheet(int height) {
+        height = Math.min(SHEET_H, height);
+        final GlassView old = sheetGlass;
+        GlassView next = sheets.get(height);
+        if (next == null) {
+            next = new GlassView(ctx, 48);
+            next.mag = 1.03f;
+            next.sheen = GlassView.SHEEN_SOFT;
+            next.setShadow(24, 60, .30f);
+            next.setAlpha(0);
+            sheetGroup.addView(next, 0, Ui.at(0, 0, SHEET_W, height));
+            sheets.put(height, next);
+            if (tuning != null) next.setTint(tuning.sheet, tuning.frost * .6f);
+        }
+        sheetGlass = next;
+        sheetHeight = height;
+        next.setVisibility(View.VISIBLE);
+        if (old != next) {
+            if (old != null) Anim.to(old, View.ALPHA, 0, 280, Ui.STD, 0).addListener(new AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(Animator a) {
+                    if (sheetGlass != old) old.setVisibility(View.INVISIBLE);
+                }
+            });
+            Anim.to(next, View.ALPHA, 1, 280, Ui.STD, 0);
+        }
+        FrameLayout.LayoutParams vp = (FrameLayout.LayoutParams) viewport.getLayoutParams();
+        if (vp.height != height) { vp.height = height; viewport.setLayoutParams(vp); }
     }
 
     // ------------------------------------------------------------------ open / close
@@ -160,6 +187,7 @@ final class SettingsController {
         Anim.set(scroll, View.TRANSLATION_Y, 0);
         dropY = Float.NaN;
         sIdx = 0;
+        removeArmed = false;
         renderRows();
         root.setVisibility(View.VISIBLE);
         Anim.fromTo(root, View.ALPHA, 0, 1, 260, Ui.OUT, 60);
@@ -199,6 +227,7 @@ final class SettingsController {
 
     /** The launcher left the screen (its views are detached): drop the thumbnails like every other image. */
     void releaseImages() {
+        previewTuning.clear();
         releaseThumbs();
     }
 
@@ -215,7 +244,7 @@ final class SettingsController {
     /** Back from Amazon's settings, or a sync finished: refresh what may have changed. */
     void refreshAccount() {
         for (Row r : rows) if ("account".equals(r.kind)) fillRow(r);
-        if ("stremio".equals(ctxSec)) {
+        if (ctxSec != null && ctxSec.endsWith(":stremio")) {
             ctxSec = null;
             Row cur = current();
             if (cur != null) setContext(cur.section, false);
@@ -233,8 +262,17 @@ final class SettingsController {
 
     // ------------------------------------------------------------------ keys
 
+    /** Host may call this before consuming an unmapped/media/volume key while settings is open. */
+    void disarmRemoval() {
+        if (!removeArmed) return;
+        removeArmed = false;
+        Row cur = current();
+        if (cur != null) fillRow(cur);
+    }
+
     /** Returns false when Back on the main page should close settings. */
     boolean onKey(int key, boolean repeat) {
+        if (key != SELECT) disarmRemoval();
         if (swapping) return true;
         long now = System.currentTimeMillis();
         if ((key == UP || key == DOWN) && repeat && now - lastMove < 110) return true;
@@ -243,11 +281,11 @@ final class SettingsController {
         switch (key) {
             case UP:
                 if (sIdx > 0) focus(sIdx - 1, true, repeat);
-                else if (!repeat) Anim.bump(dropBump, 0, -1);
+                else if (!repeat) Anim.bump(drop, 0, -1);
                 return true;
             case DOWN:
                 if (sIdx < fr.size() - 1) focus(sIdx + 1, true, repeat);
-                else if (!repeat) Anim.bump(dropBump, 0, 1);
+                else if (!repeat) Anim.bump(drop, 0, 1);
                 return true;
             case LEFT:
             case RIGHT:
@@ -271,8 +309,7 @@ final class SettingsController {
     private static final class Row {
         final String kind;
         String section;
-        String header;
-        boolean back, dep, below;
+        boolean dep, below, gap;
         int skipIndex = -1;
         int dockIndex = -1;
         int style = -1;
@@ -283,12 +320,13 @@ final class SettingsController {
         int top, height;
         boolean focused;
         // parts
-        TextView label, small, valText;
+        TextView label, valText;
         ImageView lead, chevL, chevR, go, ext;
         FrameLayout num;
         TextView[] numTx;
         int numCur;
-        LinearLayout val, lab;
+        FrameLayout val, lab;
+        SettingsMark mark;
         Switch sw;
         View dot, track, fill;
         Thumb thumb;
@@ -297,13 +335,6 @@ final class SettingsController {
         Row(String kind) {
             this.kind = kind;
         }
-    }
-
-    private Row header(String text, boolean back) {
-        Row r = new Row("header");
-        r.header = text;
-        r.back = back;
-        return r;
     }
 
     private Row row(String kind, String section) {
@@ -316,39 +347,35 @@ final class SettingsController {
         List<Row> m = new ArrayList<>();
         String pg = pages.get(pages.size() - 1);
         if (PICK.equals(pg)) {
-            m.add(header("Choose an app to skip", false));
             for (Apps.App a : installedApps()) {
                 Row r = row("pick", "skip");
                 r.app = a;
                 m.add(r);
             }
-            if (m.size() == 1) m.add(row("none", "skip"));
+            if (m.isEmpty()) m.add(row("none", "skip"));
             return m;
         }
         if (DOCK.equals(pg)) {
-            m.add(header("Dock", true));
             for (int i = 0; i < dock.size(); i++) {
                 Row r = row("dockapp", "dock-page");
                 r.dockIndex = i;
                 m.add(r);
             }
-            m.add(row(dock.size() < Apps.DOCK_MAX ? "dockadd" : "dockfull", "dock-page"));
+            Row add = row(dock.size() < Apps.DOCK_MAX ? "dockadd" : "dockfull", "dock-page"); add.gap = true; m.add(add);
             return m;
         }
         if (DOCK_ADD.equals(pg)) {
-            m.add(header("Choose an app for the dock", false));
             for (Apps.App a : Apps.launchable(ctx)) {
                 if (dock.contains(a.pkg)) continue;
                 Row r = row("dockpick", "dock-add");
                 r.app = a;
                 m.add(r);
             }
-            if (m.size() == 1) m.add(row("none", "dock-add"));
+            if (m.isEmpty()) m.add(row("none", "dock-add"));
             return m;
         }
         if (pg.startsWith(BUTTON)) {
             String key = pg.substring(BUTTON.length());
-            m.add(header(buttonName(key) + " button", true));
             Row unchanged = row("choice", pg);
             unchanged.button = key;
             m.add(unchanged);
@@ -359,12 +386,12 @@ final class SettingsController {
                 Row r = row("choice", pg);
                 r.button = key;
                 r.app = a;
+                r.gap = m.size() == 1;
                 m.add(r);
             }
             return m;
         }
         if (WALLS.equals(pg)) {
-            m.add(header("Wallpapers", true));
             for (int i = 0; i < WallpaperStyle.IDS.length; i++) {
                 Row r = row("wall", "wall-" + WallpaperStyle.IDS[i]);
                 r.style = i;
@@ -373,47 +400,40 @@ final class SettingsController {
             return m;
         }
         if (SKIP.equals(pg)) {
-            m.add(header("Skip the tint in", true));
             for (int i = 0; i < skip.size(); i++) {
                 Row r = row("skip", "skip");
                 r.skipIndex = i;
                 m.add(r);
             }
-            m.add(row("add", "skip"));
+            Row add = row("add", "skip"); add.gap = true; m.add(add);
             return m;
         }
-        // "Skip the tint in" stays when the schedule is off: the Music button can still turn the tint on.
-        m.add(header("Stremio", false));
-        m.add(row("account", "stremio"));
-        m.add(header("Home screen", false));
+        if (TINT.equals(pg)) {
+            m.add(row("enabled", "tint"));
+            for (String k : new String[]{"start", "full", "off", "strength"}) {
+                Row r = row(k, "tint"); r.dep = true; r.gap = "start".equals(k); m.add(r);
+            }
+            Row add = row("skiplist", "skip"); add.below = true; add.gap = true; m.add(add);
+            return m;
+        }
+        if (REMOTE.equals(pg)) {
+            for (String key : new String[]{Prefs.BUTTON_NETFLIX, Prefs.BUTTON_PRIME_VIDEO}) {
+                Row r = row("button", "buttons"); r.button = key; m.add(r);
+            }
+            Row music = row("music", "buttons"); music.gap = true; m.add(music);
+            return m;
+        }
         m.add(row("dockrow", "dock"));
         m.add(row("walls", "wall"));
-        m.add(header("Bedtime tint", false));
-        m.add(row("enabled", "tint"));
-        for (String k : new String[]{"start", "full", "off", "strength"}) {
-            Row r = row(k, "tint");
-            r.dep = true;
-            m.add(r);
-        }
-        m.add(row("skiplist", "skip"));
-        m.add(header("Remote buttons", false));
-        for (String key : new String[]{Prefs.BUTTON_NETFLIX, Prefs.BUTTON_PRIME_VIDEO}) {
-            Row r = row("button", "buttons");
-            r.button = key;
-            m.add(r);
-        }
-        m.add(row("music", "buttons"));
-        m.add(header("Fire TV", false));
-        m.add(row("firetv", "firetv"));
-        boolean after = false;
-        for (Row r : m) {
-            if (r.dep) after = true;
-            else if (after) r.below = true;
-        }
+        m.add(row("tintrow", "tint"));
+        m.add(row("remoterow", "buttons"));
+        m.add(row("account", "stremio"));
+        Row fire = row("firetv", "firetv"); fire.gap = true; m.add(fire);
         return m;
     }
 
     private void renderRows() {
+        ++fold;
         for (Row r : rows) Anim.cancelAll(r.view);
         rowsBox.removeAllViews();
         rows.clear();
@@ -421,7 +441,7 @@ final class SettingsController {
         collapsing = false;
         depsGone = !enabled;
         for (Row r : rows) {
-            r.view = r.header != null ? buildHeader(r) : buildRow(r);
+            r.view = buildRow(r);
             if (r.dep && !enabled) r.view.setVisibility(View.GONE);
             rowsBox.addView(r.view, Ui.at(0, 0, SHEET_W, r.height));
         }
@@ -431,15 +451,10 @@ final class SettingsController {
 
     /** Places rows top to bottom. The layout only changes here: at render, and once at the end of a fold. */
     private void layoutRows() {
-        int y = 28;
-        boolean first = true;
+        int y = 12;
         for (Row r : rows) {
             if (r.view.getVisibility() == View.GONE) continue;
-            if (r.header != null) {
-                r.height = first ? 48 : 72;
-                r.view.setPadding(r.view.getPaddingLeft(), first ? 6 : 30, 0, 10);
-            }
-            first = false;
+            if (r.gap && y > 12) y += 32;
             r.top = y;
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) r.view.getLayoutParams();
             lp.topMargin = y;
@@ -447,14 +462,26 @@ final class SettingsController {
             r.view.setLayoutParams(lp);
             y += r.height;
         }
-        contentH = y + 40;
+        contentH = y + 12;
+        int h = contentH;
+        if (h > SHEET_H) {
+            int inner = 0;
+            for (Row r : rows) if (r.top + r.height - 12 <= SHEET_H - 24) inner = r.top + r.height - 12;
+            h = inner + 24;
+        }
+        sizeSheet(h);
+        int dropHeight = WALLS.equals(pages.get(pages.size() - 1)) ? 148 : ROW_H;
+        for (View v : new View[]{drop, dropBump}) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+            if (lp.height != dropHeight) { lp.height = dropHeight; v.setLayoutParams(lp); }
+        }
     }
 
     private int contentH;
 
     private List<Row> focRows() {
         List<Row> out = new ArrayList<>();
-        for (Row r : rows) if (r.header == null && !(r.dep && !enabled)) out.add(r);
+        for (Row r : rows) if (!(r.dep && !enabled)) out.add(r);
         return out;
     }
 
@@ -466,7 +493,7 @@ final class SettingsController {
     private int groupH() {
         int n = 0;
         for (Row r : rows) if (r.dep) n++;
-        return n * ROW_H;
+        return n * ROW_H + (n > 0 ? 32 : 0);
     }
 
     /** Where a row will sit once any fold in flight has committed. */
@@ -485,24 +512,24 @@ final class SettingsController {
         if (fr.isEmpty()) return;
         sIdx = Math.max(0, Math.min(fr.size() - 1, i));
         Row r = fr.get(sIdx);
-        for (Row x : rows) if (x.header == null) setFocused(x, x == r);
+        for (Row x : rows) setFocused(x, x == r);
         float y = logicalTop(r);
         float prevY = Float.isNaN(dropY) ? y : dropY;
         dropY = y;
         if (animate && prevY != y && !fast) {
-            float cur = drop.getTranslationY();
+            float cur = dropBump.getTranslationY();
             float[] f = {0, .4f, 1};
-            Anim.keys(drop, View.TRANSLATION_Y, f, new float[]{cur, cur + (y - cur) * .55f, y}, 300, Ui.DROP, 0);
-            Anim.keys(drop, View.SCALE_X, f, new float[]{1, .985f, 1}, 300, Ui.DROP, 0);
-            Anim.keys(drop, View.SCALE_Y, f, new float[]{1, 1.12f, 1}, 300, Ui.DROP, 0);
+            Anim.keys(dropBump, View.TRANSLATION_Y, f, new float[]{cur, cur + (y - cur) * .55f, y}, 300, Ui.DROP, 0);
+            Anim.keys(dropBump, View.SCALE_X, f, new float[]{1, .985f, 1}, 300, Ui.DROP, 0);
+            Anim.keys(dropBump, View.SCALE_Y, f, new float[]{1, 1.12f, 1}, 300, Ui.DROP, 0);
         } else if (animate) {
-            Anim.to(drop, View.TRANSLATION_Y, y, 150, Ui.HELD, 0);
-            Anim.to(drop, View.SCALE_X, 1, 150, Ui.HELD, 0);
-            Anim.to(drop, View.SCALE_Y, 1, 150, Ui.HELD, 0);
+            Anim.to(dropBump, View.TRANSLATION_Y, y, 150, Ui.HELD, 0);
+            Anim.to(dropBump, View.SCALE_X, 1, 150, Ui.HELD, 0);
+            Anim.to(dropBump, View.SCALE_Y, 1, 150, Ui.HELD, 0);
         } else {
-            Anim.set(drop, View.TRANSLATION_Y, y);
-            Anim.set(drop, View.SCALE_X, 1);
-            Anim.set(drop, View.SCALE_Y, 1);
+            Anim.set(dropBump, View.TRANSLATION_Y, y);
+            Anim.set(dropBump, View.SCALE_X, 1);
+            Anim.set(dropBump, View.SCALE_Y, 1);
         }
         scrollTo(scrollFor(y), animate, fast);
         setContext(r.section, animate);
@@ -513,10 +540,14 @@ final class SettingsController {
     }
 
     private float scrollFor(float y) {
-        float t = scrollTarget;
-        if (y + t < BAND) t = BAND - y;
-        if (y + ROW_H + t > SHEET_H - BAND) t = SHEET_H - BAND - ROW_H - y;
-        return Math.min(0, Math.max(Math.min(0, SHEET_H - logicalContentH()), t));
+        if (logicalContentH() <= sheetHeight) return 0;
+        List<Row> visible = focRows();
+        int i = Math.max(0, Math.min(sIdx, visible.size() - 1));
+        Row next = visible.get(Math.min(visible.size() - 1, i + 1));
+        int need = next.top + next.height - (sheetHeight - 12);
+        int offset = 0;
+        if (need > 0) for (Row r : visible) if (r.top - 12 >= need) { offset = r.top - 12; break; }
+        return -offset;
     }
 
     private void scrollTo(float target, boolean animate, boolean fast) {
@@ -524,7 +555,7 @@ final class SettingsController {
         if (animate) Anim.to(scroll, View.TRANSLATION_Y, target, fast ? 180 : 420, fast ? Ui.HELD : Ui.STD, 0);
         else Anim.set(scroll, View.TRANSLATION_Y, target);
         // Soft fade at whichever edge has content clipped beyond it.
-        viewport.setFades(target < -1, target > SHEET_H - logicalContentH() + 1, animate);
+        viewport.setFades(target < -1, target > sheetHeight - logicalContentH() + 1, animate);
     }
 
     // ------------------------------------------------------------------ values
@@ -625,6 +656,7 @@ final class SettingsController {
         r.numCur = 1 - r.numCur;
         TextView nu = r.numTx[r.numCur];
         nu.setText(numText(r));
+        positionStepper(r);
         Anim.fromTo(old, View.TRANSLATION_X, old.getTranslationX(), -dir * 18, 120, Ui.IN, 0);
         Anim.to(old, View.ALPHA, 0, 120, Ui.IN, 0);
         Anim.fromTo(nu, View.TRANSLATION_X, dir * 18, 0, 200, Ui.OUT, 0);
@@ -658,8 +690,11 @@ final class SettingsController {
             case "dockrow":
                 pushPage(DOCK);
                 break;
+            case "tintrow": pushPage(TINT); break;
+            case "remoterow": pushPage(REMOTE); break;
             case "dockapp":
-                removeDockApp(r);
+                if (!removeArmed) { removeArmed = true; fillRow(r); }
+                else { removeArmed = false; removeDockApp(r); }
                 break;
             case "dockadd":
                 pushPage(DOCK_ADD);
@@ -693,7 +728,7 @@ final class SettingsController {
                 a.on = !a.on;
                 prefs.setSkipApps(skip);
                 host.tintSettingsChanged();
-                r.sw.set(a.on, true);
+                r.check.setAlpha(a.on ? 1f : 0f);
                 r.valText.setText(a.on ? "Skipped" : "Tinted");
                 break;
             }
@@ -745,13 +780,17 @@ final class SettingsController {
         }
         dock.set(r.dockIndex, dock.set(j, dock.get(r.dockIndex)));
         saveDock();
-        for (Row x : rows) if (x.dockIndex == r.dockIndex || x.dockIndex == j) x.label.setText(Apps.label(ctx, dock.get(x.dockIndex)));
-        focus(sIdx + dir, true, false);
+        int next = sIdx + dir;
+        renderRows();
+        ctxSec = null;
+        sIdx = next;
+        focus(next, true, false);
     }
 
     /** Select takes the app off the dock; the last one stays, since the dock is never empty. */
     private void removeDockApp(Row r) {
         if (dock.size() <= 1) {
+            fillRow(r);
             Anim.press(r.lab, 1, .04f);
             return;
         }
@@ -759,13 +798,14 @@ final class SettingsController {
         saveDock();
         int idx = sIdx;
         renderRows();
+        ctxSec = null;
         focus(idx, true, false);
     }
 
     private void toggleMusic(Row r, int dir) {
         prefs.setMusicTint(!prefs.musicTint());
-        slideNum(r, dir);
-        if (ctxBody != null && "buttons".equals(ctxSec)) ctxBody.setText(buttonsBody());
+        r.sw.set(prefs.musicTint(), true);
+        ctxSec = null; setContext("buttons", true);
     }
 
     private static String buttonName(String key) {
@@ -774,20 +814,20 @@ final class SettingsController {
 
     private String buttonValue(String key) {
         String pkg = prefs.buttonTarget(key);
-        return pkg == null ? "Unchanged" : Apps.label(ctx, pkg);
+        return pkg == null ? buttonName(key) : Apps.label(ctx, pkg);
     }
 
-    private String dockValue() {
-        StringBuilder b = new StringBuilder();
-        for (String pkg : dock) b.append(b.length() == 0 ? "" : ", ").append(Apps.label(ctx, pkg));
-        return b.toString();
+    private String dockValue() { return dock.size() + (dock.size() == 1 ? " app" : " apps"); }
+
+    private String remoteValue() {
+        return prefs.buttonTarget(Prefs.BUTTON_NETFLIX) == null && prefs.buttonTarget(Prefs.BUTTON_PRIME_VIDEO) == null
+                ? "Default" : buttonValue(Prefs.BUTTON_NETFLIX) + ", " + buttonValue(Prefs.BUTTON_PRIME_VIDEO);
     }
 
     private String buttonsBody() {
-        return "The Netflix and Prime Video buttons can open any app instead. Unchanged leaves a button alone, "
-                + "so it opens its own app as usual. "
+        return "The Netflix and Prime Video buttons can open any app instead. "
                 + (prefs.musicTint() ? "The Amazon Music button turns the bedtime tint on or off."
-                : "The Amazon Music button opens Amazon Music; fast-forward on home still turns the bedtime tint on or off.");
+                : "Amazon Music opens as usual; fast-forward on home turns the tint on or off.");
     }
 
     // ------------------------------------------------------------------ wallpapers
@@ -819,7 +859,7 @@ final class SettingsController {
         Calendar now = Calendar.getInstance();
         String[] keys = new String[thumbs.length];
         for (int i = 0; i < keys.length; i++) keys[i] = wallpapers.keyFor(i, now);
-        wallpapers.loadThumbs(keys, (i, b) -> {
+        SettingsThumbnails.load(ctx, keys, (i, b) -> {
             if (gen != thumbGen || !open) {
                 if (b != null) b.recycle();
                 return;
@@ -864,7 +904,7 @@ final class SettingsController {
         }
         if (tog == null) return;
         tog.sw.set(on, true);
-        final int gh = deps.size() * ROW_H;
+        final int gh = deps.size() * ROW_H + 32;
         final int token = ++fold;
         if (!on) {
             collapsing = true;
@@ -926,12 +966,14 @@ final class SettingsController {
         }
         sIdx = focRows().indexOf(tog);
         scrollTo(scrollFor(logicalTop(tog)), true, false);
-        updateTintContext(true);
+        ctxSec = null;
+        setContext("tint", true);
     }
 
     // ------------------------------------------------------------------ pages
 
     private void pushPage(String pg) {
+        removeArmed = false;
         returns.add(current());
         pages.add(pg);
         // Decoding starts now, so the thumbnails are usually in by the time the page's rows are built.
@@ -968,6 +1010,19 @@ final class SettingsController {
                 if (!WALLS.equals(pages.get(pages.size() - 1))) releaseThumbs();
                 List<Row> fr = focRows();
                 int idx = 0;
+                if (focusOn == null && WALLS.equals(pages.get(pages.size() - 1))) {
+                    for (int j = 0; j < fr.size(); j++) {
+                        if (fr.get(j).style == style) { idx = j; break; }
+                    }
+                }
+                if (focusOn == null && pages.get(pages.size() - 1).startsWith(BUTTON)) {
+                    for (int j = 0; j < fr.size(); j++) {
+                        Row choice = fr.get(j);
+                        String target = prefs.buttonTarget(choice.button);
+                        if (choice.app == null ? target == null : choice.app.pkg.equals(target)) { idx = j; break; }
+                    }
+                }
+                ctxSec = null;
                 if (focusOn != null) {
                     for (int j = 0; j < fr.size(); j++) {
                         Row r = fr.get(j);
@@ -1003,120 +1058,115 @@ final class SettingsController {
 
     // ------------------------------------------------------------------ context column
 
+    private String pageId() { return pages.get(pages.size() - 1); }
+
+    private Bitmap[] marks(String pkg) { return Marks.row(ctx, pkg); }
+
     private void setContext(String sec, boolean animate) {
-        if (sec.equals(ctxSec)) return;
-        ctxSec = sec;
+        Row cur = current();
+        String pg = pageId();
+        String key = pg + ":" + sec + ((DOCK.equals(pg) || DOCK_ADD.equals(pg)) ? ":" + sIdx : "");
+        if (key.equals(ctxSec)) { if (ctxGraph != null) ctxGraph.setMarker(cur.kind); return; }
+        ctxSec = key;
         final View old = ctxView;
-        LinearLayout v = new LinearLayout(ctx);
-        v.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout h2 = new LinearLayout(ctx);
-        h2.setOrientation(LinearLayout.HORIZONTAL);
-        h2.setGravity(Gravity.CENTER_VERTICAL);
-        String title, body;
+        FrameLayout v = new FrameLayout(ctx);
+        v.setClipChildren(false);
+        String title = "Settings", eyebrow = "Fresco";
+        if (!MAIN.equals(pg)) {
+            eyebrow = "Settings";
+            if (DOCK.equals(pg)) title = "Dock";
+            else if (DOCK_ADD.equals(pg)) { title = "Choose an app"; eyebrow = "Dock"; }
+            else if (WALLS.equals(pg)) title = "Wallpapers";
+            else if (TINT.equals(pg)) title = "Bedtime tint";
+            else if (REMOTE.equals(pg)) title = "Remote buttons";
+            else if (SKIP.equals(pg)) { title = "Skip the tint in"; eyebrow = "Bedtime tint"; }
+            else if (PICK.equals(pg)) { title = "Choose an app"; eyebrow = "Skip the tint in"; }
+            else { title = buttonName(pg.substring(BUTTON.length())) + " button"; eyebrow = "Remote buttons"; }
+        }
+        TextView e = SettingsType.text(ctx, eyebrow, Ui.text600, 26, Ui.white(.86f));
+        float eb = 80 + SettingsType.cap(e.getPaint());
+        SettingsType.baseline(v, e, 0, eb, 600, true);
+        if (!MAIN.equals(pg)) Ui.add(v, glyph("left"), -24, Math.round(eb - SettingsType.cap(e.getPaint()) / 2 - 12), 24, 24).setColorFilter(Ui.white(.86f), PorterDuff.Mode.SRC_IN);
+        TextView h = SettingsType.text(ctx, title, Ui.display400, 60, Ui.INK);
+        h.setLetterSpacing(-1f / 60f);
+        float tb = eb + 24 + SettingsType.cap(h.getPaint());
+        SettingsType.baseline(v, h, 0, tb, 660, true);
+        String item = null, body;
         ctxGraph = null;
-        switch (sec.startsWith("wall-") ? "wall-" : sec.startsWith(BUTTON) ? BUTTON : sec) {
-            case "dock":
-                title = "Dock";
-                body = "One to four apps sit in the glass dock on home. Home opens on the one you used last.";
-                break;
-            case "dock-page":
-                title = "Dock";
-                body = "The dock shows these apps from left to right. Left and Right move the focused app along "
-                        + "the dock; Select takes it off.";
-                break;
-            case "dock-add":
-                title = "Dock";
-                body = "The app you choose goes at the right-hand end of the dock. The dock holds up to four.";
-                break;
-            case "buttons":
-                title = "Remote buttons";
-                body = buttonsBody();
-                break;
-            case BUTTON: {
-                String name = buttonName(sec.substring(BUTTON.length()));
-                title = name + " button";
-                body = "Choose what the " + name + " button opens. Unchanged leaves it alone, so it opens "
-                        + name + " as usual.";
-                break;
-            }
-            case "wall":
-                title = "Wallpapers";
-                body = "The picture behind home follows the time of day: morning, day, evening and night. "
-                        + "Choose photographs, paintings, abstract colour or space, or let it pick.";
-                break;
-            case "wall-": {
-                int i = WallpaperStyle.fromId(sec.substring(5));
-                title = WallpaperStyle.NAMES[i];
-                body = styleBody(i);
-                break;
-            }
-            case "stremio":
-                ImageView mark = new ImageView(ctx);
-                mark.setImageBitmap(Marks.stremio(true));
-                LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(52 + 52 * Marks.PAD * 2 / Marks.SIZE, 52 + 52 * Marks.PAD * 2 / Marks.SIZE);
-                mlp.rightMargin = 18 - 52 * Marks.PAD / Marks.SIZE;
-                mlp.leftMargin = -52 * Marks.PAD / Marks.SIZE;
-                h2.addView(mark, mlp);
-                title = "Stremio";
-                body = stremio.signedIn()
-                        ? "Continue watching refreshes in the background, so home never waits for the internet."
-                        : "Not signed in. Sign in once from a computer (app/tools/stremio-login.sh); only the login token is kept on the stick.";
-                break;
-            case "tint":
-                title = "Bedtime tint";
-                body = tintBody();
-                break;
-            case "firetv":
-                title = "Fire TV settings";
-                body = "Amazon’s own settings: display and sound, network, apps, remotes and devices. They open outside the launcher; Back brings you straight back here.";
-                break;
-            default:
-                title = "Skip the tint in";
-                body = "Copy-protected apps black out their video when anything is drawn over it, so the tint steps aside while one of these is open and comes back when you leave.";
-                break;
+        boolean graph = TINT.equals(pg) || (MAIN.equals(pg) && "tint".equals(sec));
+        boolean preview = "dock".equals(sec) || DOCK.equals(pg) || DOCK_ADD.equals(pg);
+        if (DOCK.equals(pg)) body = "The dock shows these apps from left to right. Left and Right move the focused app along the dock; Select takes it off.";
+        else if (DOCK_ADD.equals(pg)) body = "The app you choose goes at the right-hand end of the dock. The dock holds up to four.";
+        else if (TINT.equals(pg)) body = tintBody();
+        else if (pg.startsWith(BUTTON)) {
+            String n = buttonName(pg.substring(BUTTON.length()));
+            body = "Choose what the " + n + " button opens. By default it opens " + n + ".";
+        } else if ("dock".equals(sec)) { item = "Dock"; body = "One to four apps sit in the glass dock on home. Home opens on the one you used last."; }
+        else if ("wall".equals(sec)) { item = "Wallpapers"; body = "The picture behind home follows the time of day, from morning to night. Choose photographs, paintings, abstract colour or space, or let it pick."; }
+        else if (sec.startsWith("wall-")) { int i = WallpaperStyle.fromId(sec.substring(5)); item = WallpaperStyle.NAMES[i]; body = styleBody(i); }
+        else if ("tint".equals(sec)) { if (MAIN.equals(pg)) item = "Bedtime tint"; body = tintBody(); }
+        else if ("buttons".equals(sec)) { if (MAIN.equals(pg)) item = "Remote buttons"; body = buttonsBody(); }
+        else if ("stremio".equals(sec)) { item = "Stremio"; body = stremio.signedIn() ? "Continue watching refreshes in the background, so home never waits for the internet." : "Not signed in. Sign in from a computer: see the README. Only the login token is kept on the stick."; }
+        else if ("firetv".equals(sec)) { item = "Fire TV settings"; body = "Amazon's own settings: display and sound, network, apps, remotes and devices. They open outside the launcher; Back brings you straight back here."; }
+        else { body = "Copy-protected apps black out their video under anything drawn over it, so the tint steps aside while one is open and comes back after."; }
+        float y = tb + 48;
+        TextView paragraph = SettingsType.text(ctx, body, Ui.text400, 26, Ui.white(.86f));
+        float first = y + SettingsType.cap(paragraph.getPaint());
+        if (item != null) {
+            TextView it = SettingsType.text(ctx, item, Ui.text500, 32, Ui.INK);
+            float ib = y + SettingsType.cap(it.getPaint());
+            SettingsType.baseline(v, it, 0, ib, 600, true);
+            Rect ascenders = new Rect(); paragraph.getPaint().getTextBounds("bdfhkl", 0, 6, ascenders);
+            first = ib + 16 + Math.max(-ascenders.top, SettingsType.cap(paragraph.getPaint()));
         }
-        TextView t = Ui.text(ctx, Ui.display500, 40, Ui.INK);
-        t.setText(title);
-        t.setLetterSpacing(-.005f);
-        h2.addView(t, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 48));
-        v.addView(h2, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 52));
-        TextView p = Ui.text(ctx, Ui.text400, 28, Ui.white(.74f));
-        p.setSingleLine(false);
-        p.setGravity(Gravity.TOP);
-        Ui.lineHeight(p, 42);
-        p.setText(body);
-        LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(560, LinearLayout.LayoutParams.WRAP_CONTENT);
-        plp.topMargin = 14;
-        v.addView(p, plp);
-        ctxBody = p;
-        if ("tint".equals(sec)) {
-            Graph g = new Graph(ctx);
-            LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(600, 256 + Graph.HEADROOM);
-            glp.topMargin = 48 - Graph.HEADROOM;
-            v.addView(g, glp);
-            g.setAlpha(enabled ? 1 : .3f);
-            Row cur = current();
-            g.setMarker(cur == null ? null : cur.kind);
-            ctxGraph = g;
+        paragraph.setSingleLine(false);
+        paragraph.setMaxLines(3);
+        paragraph.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_BALANCED);
+        paragraph.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+        Ui.lineHeight(paragraph, 38);
+        SettingsType.baseline(v, paragraph, 0, first, 600, true);
+        ctxBody = paragraph;
+        float extraY = first + (Math.max(1, paragraph.getLineCount()) - 1) * 38 + 32;
+        if (graph) {
+            ctxGraph = Ui.add(v, new Graph(ctx), 0, Math.round(extraY), 600, 264);
+            ctxGraph.setMarker(cur == null ? null : cur.kind);
         }
-        context.addView(v, new FrameLayout.LayoutParams(600, FrameLayout.LayoutParams.WRAP_CONTENT));
+        if (preview) {
+            ArrayList<String> apps = new ArrayList<>(dock);
+            int focused = DOCK.equals(pg) && cur != null ? cur.dockIndex : -1;
+            if (DOCK_ADD.equals(pg) && cur != null && cur.app != null) { focused = apps.size(); apps.add(cur.app.pkg); }
+            addPreview(v, Math.round(extraY), apps, focused);
+        }
+        context.addView(v, Ui.at(0, 0, 600, 1000));
         ctxView = v;
         if (old != null) {
-            if (animate) {
-                Anim.to(old, View.ALPHA, 0, 120, Ui.IN, 0).addListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator a) {
-                        context.removeView(old);
-                    }
-                });
-            } else {
-                context.removeView(old);
-            }
+            if (animate) Anim.to(old, View.ALPHA, 0, 120, Ui.IN, 0).addListener(new AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(Animator a) { context.removeView(old); }
+            });
+            else context.removeView(old);
         }
-        if (animate) {
-            Anim.fromTo(v, View.ALPHA, 0, 1, 280, Ui.OUT, 80);
-            Anim.fromTo(v, View.TRANSLATION_Y, 10, 0, 280, Ui.OUT, 80);
+        if (animate) { Anim.fromTo(v, View.ALPHA, 0, 1, 280, Ui.OUT, 80); Anim.fromTo(v, View.TRANSLATION_Y, 10, 0, 280, Ui.OUT, 80); }
+    }
+
+    private void addPreview(FrameLayout parent, int y, List<String> apps, int focused) {
+        int width = apps.size() * 72 + 8;
+        FrameLayout frame = Ui.add(parent, new FrameLayout(ctx), 0, y, width, 80);
+        frame.setClipChildren(false);
+        GlassView g = Ui.add(frame, new GlassView(ctx, 24), 0, 0, width, 80);
+        g.lensMag = 1.16f; g.setLensBand(4); g.setShadow(6, 15, .26f, 1, 2, .10f);
+        float previewMilk = .7f;
+        if (tuning != null) {
+            Wallpapers.Frame wallpaper = wallpapers.current();
+            float[] material = previewTuning.at(wallpaper == null ? null : wallpaper.blur, tuning, 120, y, width);
+            g.setTint(material[0], tuning.frost);
+            previewMilk = material[1];
         }
+        if (focused >= 0) {
+            GlassView milk = Ui.add(frame, new GlassView(ctx, 16), 8 + focused * 72, 8, 64, 64);
+            milk.mag = 1.10f; milk.glint = true; milk.setShadow(3, 8, .2f);
+            milk.setMilk(previewMilk, 1);
+        }
+        for (int i = 0; i < apps.size(); i++) Ui.add(frame, new SettingsMark(ctx, marks(apps.get(i)), 1f), 16 + i * 72, 16, 48, 48).setFocusedMark(i == focused);
     }
 
     private String styleBody(int i) {
@@ -1139,244 +1189,131 @@ final class SettingsController {
                 b = "Photographs of lakes, forests, coasts and snow for each time of day, a different set each day of the week.";
                 break;
         }
-        // Abstract and space may not be packed yet; then the style shows the nature photo instead.
-        if (i != WallpaperStyle.NATURE && wallpapers.keyFor(i, Calendar.getInstance()).startsWith("nature/")) {
-            b += " They aren't in this build yet, so it shows Nature.";
-        }
         return b;
     }
 
     private String tintBody() {
         String button = prefs.musicTint() ? "The Amazon Music button" : "Fast-forward on home";
-        String note = TintController.overrideNote(prefs);
         String base = enabled ? "Dims and warms every app at night. " + button + " turns it on or off; a second press goes back to the schedule."
                 : "Off in the evenings. " + button + " still turns it on until " + Ui.hhmm(prefs.tintOff()) + ".";
-        return note == null ? base : note + " " + base;
-    }
-
-    private void updateTintContext(boolean animate) {
-        if (!"tint".equals(ctxSec)) return;
-        if (ctxBody != null) ctxBody.setText(tintBody());
-        if (ctxGraph != null) {
-            if (animate) Anim.to(ctxGraph, View.ALPHA, enabled ? 1 : .3f, 320, Ui.STD, 0);
-            else ctxGraph.setAlpha(enabled ? 1 : .3f);
-            ctxGraph.invalidate();
-        }
+        return base;
     }
 
     // ------------------------------------------------------------------ building rows
 
-    private View buildHeader(Row r) {
-        TextView t = Ui.text(ctx, Ui.text600, 24, Ui.white(.62f));
-        t.setGravity(Gravity.TOP);
-        t.setText(r.header);
-        t.setPadding(48, 30, 0, 10);
-        if (r.back) {
-            Drawable d = icon(R.drawable.ic_chev_left, Ui.white(.62f));
-            d.setBounds(0, 0, 26, 26);
-            t.setCompoundDrawables(d, null, null, null);
-            t.setCompoundDrawablePadding(6);
-            t.setPadding(42, 30, 0, 10);
-        }
-        r.height = 72;
+    private ImageView glyph(String name) {
+        ImageView v = new ImageView(ctx); v.setImageDrawable(new SettingsGlyph(name)); return v;
+    }
+
+    private void label(Row r, String text, int x) {
+        r.label = SettingsType.text(ctx, text, Ui.text500, 32, Ui.INK);
+        int max = "music".equals(r.kind) ? 800 : 620;
+        r.label.setMaxWidth(max);
+        r.label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        SettingsType.centred(r.lab, r.label, x, max, r.height);
+    }
+
+    private TextView valueText(Row r, String text) {
+        TextView t = SettingsType.text(ctx, text, Ui.text400, 32, Ui.white(.78f));
+        t.setGravity(Gravity.TOP | Gravity.RIGHT);
+        t.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        boolean destination = "dockrow".equals(r.kind) || "walls".equals(r.kind) || "tintrow".equals(r.kind)
+                || "button".equals(r.kind) || "skiplist".equals(r.kind);
+        int width = "remoterow".equals(r.kind) ? 530 : destination ? 440 : 600;
+        SettingsType.centred(r.val, t, 600 - width, width, r.height);
         return t;
+    }
+
+    private String ownPackage(String button) {
+        return Prefs.BUTTON_NETFLIX.equals(button) ? FrescoService.NETFLIX_PACKAGE : FrescoService.PRIME_VIDEO_PACKAGE;
     }
 
     private View buildRow(Row r) {
-        r.height = ROW_H;
-        FrameLayout f = new FrameLayout(ctx);
-        f.setClipChildren(false);
-        r.lab = new LinearLayout(ctx);
-        r.lab.setOrientation(LinearLayout.HORIZONTAL);
-        r.lab.setGravity(Gravity.CENTER_VERTICAL);
-        f.addView(r.lab, Ui.at(48, 0, FrameLayout.LayoutParams.WRAP_CONTENT, ROW_H));
-        r.val = new LinearLayout(ctx);
-        r.val.setOrientation(LinearLayout.HORIZONTAL);
-        r.val.setGravity(Gravity.CENTER_VERTICAL);
-        FrameLayout.LayoutParams vlp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, ROW_H, Gravity.TOP | Gravity.END);
-        vlp.rightMargin = 48;
-        f.addView(r.val, vlp);
-
+        r.height = "wall".equals(r.kind) ? 148 : ROW_H;
+        FrameLayout f = new FrameLayout(ctx); f.setClipChildren(false);
+        r.lab = Ui.add(f, new FrameLayout(ctx), 0, 0, SHEET_W, r.height);
+        r.val = Ui.add(f, new FrameLayout(ctx), 312, 0, 640, r.height);
+        r.val.setClipChildren(false);
+        String text = "", pkg = null;
+        int lx = 48;
         switch (r.kind) {
-            case "add":
-            case "dockadd":
-                r.lead = new ImageView(ctx);
-                r.lead.setImageResource(R.drawable.ic_plus);
-                r.lab.addView(r.lead, lp(30, 30, 0, 16));
-                label(r, "Add an app");
-                break;
-            case "account":
-                label(r, "Account");
-                r.dot = new View(ctx);
-                r.val.addView(r.dot, lp(12, 12, 0, 14));
-                r.valText = valueText(r.val);
-                break;
-            case "enabled":
-                label(r, "Every evening");
-                r.sw = new Switch(ctx, true);
-                r.sw.set(enabled, false);
-                r.val.addView(r.sw, lp(76, 42, 0, 0));
-                break;
-            case "start":
-            case "full":
-            case "off":
-                label(r, "start".equals(r.kind) ? "Starts fading in" : "full".equals(r.kind) ? "Full strength by" : "Turns off");
-                chevrons(r, 92, null);
-                break;
-            case "strength":
-                label(r, "Strength");
-                chevrons(r, 76, ctx2 -> {
-                    FrameLayout track = new FrameLayout(ctx);
-                    track.setOutlineProvider(round(5));
-                    track.setClipToOutline(true);
-                    r.track = track;
-                    View fill = new View(ctx);
-                    r.fill = fill;
-                    fill.setPivotX(0);
-                    fill.setScaleX(strength / 100f);
-                    track.addView(fill, new FrameLayout.LayoutParams(300, 10));
-                    return track;
-                });
-                break;
-            case "skiplist":
-            case "walls":
-            case "dockrow":
-            case "button":
-                label(r, "walls".equals(r.kind) ? "Wallpapers" : "skiplist".equals(r.kind) ? "Skip the tint in"
-                        : "dockrow".equals(r.kind) ? "Dock" : buttonName(r.button) + " button");
-                r.valText = valueText(r.val);
-                // Four dock apps or a long app name end in an ellipsis rather than run into the label.
-                r.valText.setMaxWidth(560);
-                r.valText.setEllipsize(android.text.TextUtils.TruncateAt.END);
-                r.go = new ImageView(ctx);
-                r.go.setImageResource(R.drawable.ic_chev_right);
-                r.val.addView(r.go, lp(26, 26, 0, 0));
-                break;
+            case "dockapp": pkg = dock.get(r.dockIndex); text = Apps.label(ctx, pkg); break;
+            case "button": pkg = ownPackage(r.button); text = buttonName(r.button) + " button"; break;
+            case "music": pkg = "com.amazon.bueller.music"; text = "Amazon Music button toggles the tint"; break;
+            case "skip": pkg = skip.get(r.skipIndex).pkg; text = skip.get(r.skipIndex).name; break;
+            case "choice": pkg = r.app == null ? ownPackage(r.button) : r.app.pkg; text = r.app == null ? buttonName(r.button) : r.app.name; break;
+            case "dockpick": case "pick": pkg = r.app.pkg; text = r.app.name; break;
+            case "dockrow": text = "Dock"; break;
+            case "walls": text = "Wallpapers"; break;
+            case "tintrow": text = "Bedtime tint"; break;
+            case "remoterow": text = "Remote buttons"; break;
+            case "account": text = "Stremio"; break;
+            case "firetv": text = "Fire TV settings"; break;
+            case "enabled": text = "Every evening"; break;
+            case "start": text = "Starts fading in"; break;
+            case "full": text = "Full strength by"; break;
+            case "off": text = "Turns off"; break;
+            case "strength": text = "Strength"; break;
+            case "skiplist": text = "Skip the tint in"; break;
+            case "add": case "dockadd":
+                text = "Add an app"; r.lead = Ui.add(r.lab, glyph("plus"), 56, (r.height - 32) / 2, 32, 32); lx = 120; break;
+            case "dockfull": text = "The dock holds four apps"; break;
             case "wall":
-                r.thumb = new Thumb(ctx);
-                r.lab.addView(r.thumb, lp(THUMB_W, THUMB_H, 0, 28));
-                setThumb(r);
-                label(r, WallpaperStyle.NAMES[r.style]);
-                r.check = new ImageView(ctx);
-                r.check.setImageResource(R.drawable.ic_check);
-                r.check.setAlpha(r.style == style ? 1f : 0f);
-                r.val.addView(r.check, lp(32, 32, 0, 0));
-                break;
-            case "firetv":
-                label(r, "Fire TV settings");
-                r.small = Ui.text(ctx, Ui.text400, 22, Ui.white(.62f));
-                r.small.setText("Amazon’s own");
-                r.lab.addView(r.small, lp(LinearLayout.LayoutParams.WRAP_CONTENT, 30, 16, 0));
-                r.ext = new ImageView(ctx);
-                r.ext.setImageResource(R.drawable.ic_ext);
-                r.val.addView(r.ext, lp(30, 30, 0, 0));
-                break;
-            case "skip": {
-                Prefs.SkipApp a = skip.get(r.skipIndex);
-                label(r, a.name);
-                r.valText = valueText(r.val);
-                r.valText.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, 24);
-                r.sw = new Switch(ctx, false);
-                r.sw.set(a.on, false);
-                r.val.addView(r.sw, lp(76, 42, 0, 0));
-                break;
-            }
-            case "music":
-                label(r, "Amazon Music button");
-                chevrons(r, 184, null);
-                break;
-            case "dockapp":
-                label(r, Apps.label(ctx, dock.get(r.dockIndex)));
-                chevrons(r, 100, null);
-                break;
-            case "dockfull":
-                label(r, "The dock holds four apps");
-                break;
-            case "choice":
-                label(r, r.app == null ? "Unchanged" : r.app.name);
-                if (r.app == null) {
-                    r.small = Ui.text(ctx, Ui.text400, 22, Ui.white(.62f));
-                    r.small.setText("Opens " + buttonName(r.button));
-                    r.lab.addView(r.small, lp(LinearLayout.LayoutParams.WRAP_CONTENT, 30, 16, 0));
-                }
-                r.check = new ImageView(ctx);
-                r.check.setImageResource(R.drawable.ic_check);
-                String target = prefs.buttonTarget(r.button);
-                r.check.setAlpha((r.app == null ? target == null : r.app.pkg.equals(target)) ? 1f : 0f);
-                r.val.addView(r.check, lp(32, 32, 0, 0));
-                break;
-            case "dockpick":
-            case "pick":
-                label(r, r.app.name);
-                r.small = Ui.text(ctx, Ui.text400, 22, Ui.white(.62f));
-                r.small.setText(r.app.pkg);
-                r.lab.addView(r.small, lp(LinearLayout.LayoutParams.WRAP_CONTENT, 30, 16, 0));
-                r.go = new ImageView(ctx);
-                r.go.setImageResource(R.drawable.ic_plus);
-                r.val.addView(r.go, lp(28, 28, 0, 0));
-                break;
-            case "none":
-                label(r, "dock-add".equals(r.section) ? "Every app is already in the dock" : "Every installed app is already on the list");
-                break;
+                text = WallpaperStyle.NAMES[r.style];
+                r.thumb = Ui.add(r.lab, new Thumb(ctx), 28, 16, THUMB_W, THUMB_H); setThumb(r); lx = 260; break;
+            default: text = "dock-add".equals(r.section) ? "Every app is already in the dock" : "Every installed app is already on the list";
         }
-        r.view = f;
-        fillRow(r);
-        return f;
+        if (pkg != null) { r.mark = Ui.add(r.lab, new SettingsMark(ctx, marks(pkg)), 48, (r.height - 48) / 2, 48, 48); lx = 120; }
+        label(r, text, lx);
+        switch (r.kind) {
+            case "enabled": case "music":
+                r.sw = Ui.add(r.val, new Switch(ctx, "enabled".equals(r.kind)), 564, (r.height - 42) / 2, 76, 42);
+                r.sw.set("enabled".equals(r.kind) ? enabled : prefs.musicTint(), false); break;
+            case "start": case "full": case "off": case "strength": case "dockapp":
+                chevrons(r);
+                if ("dockapp".equals(r.kind)) { r.valText = valueText(r, "Press again to remove"); r.valText.setVisibility(View.GONE); }
+                break;
+            case "wall": case "choice": case "skip":
+                r.check = Ui.add(r.val, glyph("check"), 616, (r.height - 24) / 2, 24, 24);
+                if ("wall".equals(r.kind)) r.check.setAlpha(r.style == style ? 1f : 0f);
+                else if ("skip".equals(r.kind)) { r.valText = valueText(r, ""); r.check.setAlpha(skip.get(r.skipIndex).on ? 1f : 0f); }
+                else { String target = prefs.buttonTarget(r.button); r.check.setAlpha((r.app == null ? target == null : r.app.pkg.equals(target)) ? 1f : 0f); if (r.app == null) r.valText = valueText(r, "Default"); }
+                break;
+            case "dockpick": case "pick": r.go = Ui.add(r.val, glyph("plus"), 616, (r.height - 24) / 2, 24, 24); break;
+            case "dockrow": case "walls": case "tintrow": case "remoterow": case "button": case "skiplist":
+                r.valText = valueText(r, "");
+                r.go = Ui.add(r.val, glyph("right"), 616, (r.height - 24) / 2, 24, 24); break;
+            case "firetv": r.valText = valueText(r, "Amazon's own"); r.ext = Ui.add(r.val, glyph("ext"), 616, (r.height - 24) / 2, 24, 24); break;
+            case "account": r.valText = valueText(r, stremio.signedIn() ? "Connected" : "Not signed in"); r.dot = Ui.add(r.val, new View(ctx), 0, (r.height - 12) / 2, 12, 12); break;
+        }
+        r.view = f; fillRow(r); return f;
     }
 
-    private interface Extra {
-        View make(Context c);
-    }
-
-    private void chevrons(Row r, int numW, Extra extra) {
-        r.chevL = new ImageView(ctx);
-        r.chevL.setImageResource(R.drawable.ic_chev_left);
-        r.val.addView(r.chevL, lp(26, 26, 0, 14));
-        r.num = new FrameLayout(ctx);
+    private void chevrons(Row r) {
+        r.num = Ui.add(r.val, new FrameLayout(ctx), 0, 0, 600, r.height);
         r.num.setClipChildren(true);
         r.numTx = new TextView[2];
         for (int i = 0; i < 2; i++) {
-            TextView t = Ui.text(ctx, Ui.text400, 30, Ui.white(.78f));
-            t.setGravity(Gravity.CENTER);
-            t.setFontFeatureSettings("tnum");
-            t.setAlpha(i == 0 ? 1 : 0);
-            r.num.addView(t, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 40));
-            r.numTx[i] = t;
+            TextView t = SettingsType.text(ctx, numText(r), Ui.text400, 32, Ui.white(.78f));
+            t.setGravity(Gravity.TOP | Gravity.RIGHT);
+            SettingsType.centred(r.num, t, 0, 600, r.height); t.setAlpha(i == 0 ? 1f : 0f); r.numTx[i] = t;
         }
-        r.numTx[0].setText(numText(r));
-        if (extra != null) {
-            LinearLayout str = new LinearLayout(ctx);
-            str.setOrientation(LinearLayout.HORIZONTAL);
-            str.setGravity(Gravity.CENTER_VERTICAL);
-            str.addView(r.num, lp(numW, 40, 0, 20));
-            str.addView(extra.make(ctx), lp(300, 10, 0, 0));
-            r.val.addView(str, lp(LinearLayout.LayoutParams.WRAP_CONTENT, 40, 0, 14));
-        } else {
-            r.val.addView(r.num, lp(numW, 40, 0, 14));
+        r.chevL = Ui.add(r.val, glyph("left"), 0, (r.height - 24) / 2, 24, 24);
+        r.chevR = Ui.add(r.val, glyph("right"), 616, (r.height - 24) / 2, 24, 24);
+        if ("strength".equals(r.kind)) {
+            FrameLayout track = Ui.add(r.val, new FrameLayout(ctx), 0, (r.height - 10) / 2, 320, 10);
+            track.setOutlineProvider(round(5)); track.setClipToOutline(true); r.track = track;
+            r.fill = Ui.add(track, new View(ctx), 0, 0, 320, 10); r.fill.setPivotX(0); r.fill.setScaleX(strength / 100f);
         }
-        r.chevR = new ImageView(ctx);
-        r.chevR.setImageResource(R.drawable.ic_chev_right);
-        r.val.addView(r.chevR, lp(26, 26, 0, 0));
+        positionStepper(r);
     }
 
-    private void label(Row r, String text) {
-        r.label = Ui.text(ctx, Ui.text500, 30, Ui.INK);
-        r.label.setText(text);
-        r.lab.addView(r.label, lp(LinearLayout.LayoutParams.WRAP_CONTENT, 40, 0, 0));
-    }
-
-    private TextView valueText(LinearLayout val) {
-        TextView t = Ui.text(ctx, Ui.text400, 30, Ui.white(.78f));
-        t.setFontFeatureSettings("tnum");
-        val.addView(t, lp(LinearLayout.LayoutParams.WRAP_CONTENT, 40, 0, 14));
-        return t;
-    }
-
-    private static LinearLayout.LayoutParams lp(int w, int h, int left, int right) {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(w, h);
-        p.leftMargin = left;
-        p.rightMargin = right;
-        return p;
+    private void positionStepper(Row r) {
+        Paint p = r.numTx[r.numCur].getPaint(); String value = numText(r);
+        Rect bounds = new Rect(); p.getTextBounds(value, 0, 1, bounds);
+        float x = 600 - p.measureText(value) + bounds.left - 16 - 24;
+        r.chevL.setTranslationX(x);
+        if (r.track != null) r.track.setTranslationX(x - 16 - 320);
     }
 
     private static ViewOutlineProvider round(final float r) {
@@ -1388,12 +1325,6 @@ final class SettingsController {
         };
     }
 
-    private Drawable icon(int res, int color) {
-        Drawable d = ctx.getDrawable(res).mutate();
-        d.setTint(color);
-        return d;
-    }
-
     /** Row ink flips to dark when the droplet arrives: one redraw of that row, not an animation. */
     private void setFocused(Row r, boolean f) {
         if (r.focused == f) return;
@@ -1403,72 +1334,50 @@ final class SettingsController {
 
     private void fillRow(Row r) {
         boolean f = r.focused;
-        int c = f ? Ui.INK_DARK : 0xFFFFFF;
-        if (r.label != null) {
-            r.label.setTextColor(f ? Ui.INK_DARK : Ui.INK);
-            r.label.setAlpha("none".equals(r.kind) || "dockfull".equals(r.kind) ? .6f : f ? 1 : .86f);
-        }
-        if (r.small != null) r.small.setTextColor(Ui.withAlpha(c, .62f));
-        if (r.lead != null) r.lead.setColorFilter(f ? Ui.INK_DARK : Ui.INK);
-        if (r.valText != null) r.valText.setTextColor(Ui.withAlpha(c, .78f));
-        if (r.numTx != null) for (TextView t : r.numTx) t.setTextColor(Ui.withAlpha(c, .78f));
+        int ink = f ? Ui.INK_DARK : Ui.INK;
+        int secondary = Ui.withAlpha(ink, f ? .70f : .78f);
+        r.label.setTextColor(ink);
+        r.label.setAlpha("none".equals(r.kind) || "dockfull".equals(r.kind) ? (f ? .70f : .62f) : 1);
+        if (r.mark != null) r.mark.setFocusedMark(f);
+        if (r.lead != null) r.lead.setColorFilter(ink);
+        if (r.valText != null) r.valText.setTextColor(secondary);
+        if (r.numTx != null) for (TextView t : r.numTx) t.setTextColor(secondary);
         if (r.chevL != null) {
-            r.chevL.setColorFilter(Ui.withAlpha(c, .7f));
-            r.chevR.setColorFilter(Ui.withAlpha(c, .7f));
-            r.chevL.setAlpha(f ? 1f : 0f);
-            r.chevR.setAlpha(f ? 1f : 0f);
+            r.chevL.setColorFilter(secondary, PorterDuff.Mode.SRC_IN); r.chevR.setColorFilter(secondary, PorterDuff.Mode.SRC_IN);
+            boolean show = f && !("dockapp".equals(r.kind) && removeArmed);
+            r.chevL.setAlpha(show ? 1f : 0f); r.chevR.setAlpha(show ? 1f : 0f);
         }
-        if (r.check != null) r.check.setColorFilter(Ui.withAlpha(c, .9f));
-        if (r.go != null) {
-            boolean chev = "skiplist".equals(r.kind) || "walls".equals(r.kind) || "dockrow".equals(r.kind) || "button".equals(r.kind);
-            r.go.setColorFilter(Ui.withAlpha(c, chev ? .7f : .78f));
-            r.go.setAlpha(chev ? .7f : 1f);
+        if ("dockapp".equals(r.kind)) {
+            boolean armed = f && removeArmed;
+            r.valText.setVisibility(armed ? View.VISIBLE : View.GONE); r.valText.setTextColor(ink);
+            r.num.setVisibility(armed ? View.INVISIBLE : View.VISIBLE);
+            if (!armed) { setNumText(r, numText(r)); positionStepper(r); }
         }
-        if (r.ext != null) r.ext.setColorFilter(Ui.withAlpha(c, .8f));
+        if (r.check != null) r.check.setColorFilter(ink);
+        if (r.go != null) r.go.setColorFilter(secondary, PorterDuff.Mode.SRC_IN);
+        if (r.ext != null) r.ext.setColorFilter(secondary, PorterDuff.Mode.SRC_IN);
         if (r.sw != null) r.sw.setInk(f);
         if (r.track != null) {
-            GradientDrawable t = new GradientDrawable();
-            t.setColor(Ui.withAlpha(c, .2f));
-            t.setCornerRadius(5);
-            r.track.setBackground(t);
-            GradientDrawable fl = new GradientDrawable();
-            fl.setColor(f ? 0xFFC26A12 : Ui.AMBER);
-            fl.setCornerRadius(5);
-            r.fill.setBackground(fl);
+            r.track.setBackground(Switch.pill(Ui.withAlpha(ink, .24f), 5));
+            r.fill.setBackground(Switch.pill(f ? 0xFFC26A12 : Ui.AMBER, 5));
         }
         if ("account".equals(r.kind)) {
-            GradientDrawable d = new GradientDrawable();
-            d.setShape(GradientDrawable.OVAL);
-            if (stremio.signedIn()) {
-                d.setColor(0xFF000000 | c);
-                r.valText.setText(stremio.syncing() ? "Syncing…" : syncedText());
-            } else {
-                d.setColor(0);
-                d.setStroke(2, Ui.withAlpha(c, .7f));
-                r.valText.setText("Not signed in · sign in from a computer");
-            }
-            r.dot.setBackground(d);
+            GradientDrawable dot = new GradientDrawable(); dot.setShape(GradientDrawable.OVAL);
+            dot.setColor(secondary);
+            r.dot.setBackground(stremio.signedIn() ? dot : new SettingsGlyph("dot", secondary));
+            r.valText.setText(stremio.signedIn() ? "Connected" : "Not signed in");
+            r.dot.setTranslationX(600 - r.valText.getPaint().measureText(r.valText.getText().toString()) - 24);
         }
         if ("skiplist".equals(r.kind)) {
-            int n = 0;
-            for (Prefs.SkipApp a : skip) if (a.on) n++;
-            r.valText.setText(n == skip.size() ? n + " apps" : n + " of " + skip.size() + " apps");
+            int n = 0; for (Prefs.SkipApp a : skip) if (a.on) n++;
+            r.valText.setText(n == skip.size() ? n + (n == 1 ? " app" : " apps") : n + " of " + skip.size() + " apps");
         }
         if ("skip".equals(r.kind)) r.valText.setText(skip.get(r.skipIndex).on ? "Skipped" : "Tinted");
         if ("walls".equals(r.kind)) r.valText.setText(WallpaperStyle.NAMES[style]);
         if ("dockrow".equals(r.kind)) r.valText.setText(dockValue());
         if ("button".equals(r.kind)) r.valText.setText(buttonValue(r.button));
-    }
-
-    private String syncedText() {
-        long t = prefs.syncedAt();
-        if (t == 0) return "Connected · not synced yet";
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(t);
-        String hm = Ui.two(c.get(Calendar.HOUR_OF_DAY)) + ":" + Ui.two(c.get(Calendar.MINUTE));
-        if (DateUtils.isToday(t)) return "Connected · synced " + hm;
-        return "Connected · synced " + c.get(Calendar.DAY_OF_MONTH) + " "
-                + c.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.UK) + " " + hm;
+        if ("tintrow".equals(r.kind)) r.valText.setText(enabled ? Ui.hhmm(start) + " – " + Ui.hhmm(off) : "Off");
+        if ("remoterow".equals(r.kind)) r.valText.setText(remoteValue());
     }
 
     // ------------------------------------------------------------------ parts
@@ -1544,7 +1453,7 @@ final class SettingsController {
             GradientDrawable bg = new GradientDrawable();
             bg.setColor(Ui.white(.14f));
             setBackground(bg);
-            setOutlineProvider(round(12));
+            setOutlineProvider(round(20));
             setClipToOutline(true);
         }
 
@@ -1561,7 +1470,7 @@ final class SettingsController {
                 draw(c, parts[0], 0, 0, w, h);
                 return;
             }
-            int gap = 2, cw = (w - gap) / 2, ch = (h - gap) / 2;
+            int gap = 8, cw = (w - gap) / 2, ch = (h - gap) / 2;
             for (int i = 0; i < parts.length && i < 4; i++) {
                 int x = i % 2 == 0 ? 0 : cw + gap, y = i < 2 ? 0 : ch + gap;
                 draw(c, parts[i], x, y, i % 2 == 0 ? cw : w - cw - gap, i < 2 ? ch : h - ch - gap);
@@ -1603,8 +1512,8 @@ final class SettingsController {
 
         void setInk(boolean focused) {
             int c = focused ? Ui.INK_DARK : 0xFFFFFF;
-            trackOff.setBackground(pill(Ui.withAlpha(c, .2f), 21));
-            trackOn.setBackground(pill(amber ? Ui.AMBER : Ui.withAlpha(c, .9f), 21));
+            trackOff.setBackground(pill(Ui.withAlpha(c, .24f), 21));
+            trackOn.setBackground(pill(amber ? (focused ? 0xFFC26A12 : Ui.AMBER) : 0xFF000000 | c, 21));
             knobOff.setBackground(pill(0xFF000000 | c, 16));
             knobOn.setBackground(pill(amber ? 0xFF2A1606 : focused ? 0xFFFFFFFF : Ui.INK_DARK, 16));
         }
@@ -1634,13 +1543,11 @@ final class SettingsController {
     }
 
     /**
-     * The schedule graph: 17:00 → 10:00. The amber area ramps from start to full, holds at the chosen
+     * The schedule graph: 17:11 → 10:11. The amber area ramps from start to full, holds at the chosen
      * strength and drops at off. The focused time shows as a dashed marker; a tick marks now.
      * Redraws only when a value or the focused row changes.
      */
     private final class Graph extends View {
-        /** Room above the plot for the marker's time label, which sits above the top of the ramp. */
-        static final int HEADROOM = 32;
         private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint area = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -1666,74 +1573,48 @@ final class SettingsController {
 
         @Override
         protected void onDraw(Canvas c) {
-            c.translate(0, HEADROOM);
-            final float W = 600, base = 176, top = 26, a0 = 17 * 60, a1 = 10 * 60 + 1440;
+            final float W = 600, labelBase = SettingsType.cap(labelPaint()), top = labelBase + 12;
+            final float base = top + 150, a0 = 17 * 60 + 11, a1 = a0 + 17 * 60;
             float s = ev(start), f = Math.max(ev(full), s), o = off + 1440;
-            float yTop = base - (base - top) * (strength / 100f);
-            path.reset();
-            path.moveTo(0, base);
-            path.lineTo(x(s, a0, a1, W), base);
-            path.lineTo(x(f, a0, a1, W), yTop);
-            path.lineTo(x(o, a0, a1, W), yTop);
-            path.lineTo(x(o, a0, a1, W) + 8, base);
-            path.lineTo(W, base);
-
-            line.setStyle(Paint.Style.STROKE);
-            line.setPathEffect(null);
-            line.setStrokeWidth(2);
-            line.setColor(Ui.white(.28f));
+            float yTop = base - 150 * strength / 100f;
+            path.reset(); path.moveTo(0, base);
+            path.lineTo(x(s, a0, a1, W), base); path.lineTo(x(f, a0, a1, W), yTop);
+            path.lineTo(x(o, a0, a1, W), yTop); path.lineTo(Math.min(W, x(o, a0, a1, W) + 8), base); path.lineTo(W, base);
+            line.setStyle(Paint.Style.STROKE); line.setPathEffect(null); line.setStrokeWidth(2); line.setColor(Ui.white(.24f));
             c.drawLine(0, base, W, base, line);
-
-            int pathAlpha = Math.round((enabled ? 1 : .35f) * 255);
-            area.setShader(new LinearGradient(0, yTop, 0, base, Ui.withAlpha(Ui.AMBER, .55f), Ui.withAlpha(Ui.AMBER, .04f), Shader.TileMode.CLAMP));
-            area.setAlpha(pathAlpha);
-            Path filled = new Path(path);
-            filled.close();
-            c.drawPath(filled, area);
-            line.setStrokeWidth(3);
-            line.setColor(Ui.AMBER);
-            line.setAlpha(pathAlpha);
-            c.drawPath(path, line);
-
-            text.setColor(Ui.white(.52f));
-            line.setStrokeWidth(2);
-            line.setColor(Ui.white(.35f));
+            if (enabled) {
+                area.setShader(new LinearGradient(0, yTop, 0, base, Ui.withAlpha(Ui.AMBER, .55f), Ui.withAlpha(Ui.AMBER, .04f), Shader.TileMode.CLAMP));
+                Path filled = new Path(path); filled.close(); c.drawPath(filled, area);
+            }
+            line.setStrokeWidth(3); line.setColor(enabled ? Ui.AMBER : Ui.white(.24f)); c.drawPath(path, line);
+            text.setTypeface(Ui.text500); text.setTextSize(22); text.setColor(Ui.white(.86f));
+            line.setStrokeWidth(2); line.setColor(Ui.white(.24f));
             for (int h = 18; h <= 33; h += 3) {
                 float tx = x(h * 60, a0, a1, W);
-                c.drawText(Ui.hhmm(h * 60), tx, base + 40, text);
-                c.drawLine(tx, base + 4, tx, base + 12, line);
+                c.drawText(Ui.hhmm(h * 60), tx, base + 40, text); c.drawLine(tx, base + 4, tx, base + 12, line);
             }
-
             float now = ev(host.nowMinutes());
             if (now >= a0 && now <= a1) {
-                float nx = x(now, a0, a1, W);
-                line.setStrokeWidth(3);
-                line.setColor(Ui.white(.8f));
+                float nx = x(now, a0, a1, W); line.setStrokeWidth(3); line.setColor(Ui.INK);
                 c.drawLine(nx, base - 6, nx, base + 6, line);
-                text.setColor(Ui.white(.74f));
-                c.drawText("now", nx, base + 72, text);
+                // Keep the small "now" run inside the same 600 px measure.
+                float half = text.measureText("now") / 2; c.drawText("now", Math.max(half, Math.min(W - half, nx)), base + 72, text);
             }
-
             if (marker != null) {
-                float m = "start".equals(marker) ? s : "full".equals(marker) ? f : o;
-                float mx = x(m, a0, a1, W);
-                line.setStrokeWidth(2);
-                line.setColor(Ui.INK);
-                line.setPathEffect(new DashPathEffect(new float[]{3, 6}, 0));
-                c.drawLine(mx, top - 10, mx, base, line);
-                line.setPathEffect(null);
-                area.setShader(null);
-                area.setColor(Ui.INK);
-                c.drawCircle(mx, m == s ? base : yTop, 7, area);
-                text.setColor(Ui.INK);
-                text.setTypeface(Ui.text600);
-                c.drawText(Ui.hhmm((int) m), mx, top - 22, text);
-                text.setTypeface(Ui.text500);
+                float m = "start".equals(marker) ? s : "full".equals(marker) ? f : o, mx = x(m, a0, a1, W);
+                line.setStrokeWidth(2); line.setColor(Ui.INK); line.setPathEffect(new DashPathEffect(new float[]{3, 6}, 0));
+                c.drawLine(mx, top, mx, base, line); line.setPathEffect(null);
+                area.setShader(null); area.setColor(Ui.INK); c.drawCircle(mx, "start".equals(marker) ? base : yTop, 7, area);
+                text.setTextSize(26); text.setColor(Ui.INK);
+                String label = Ui.hhmm((int) m); float half = text.measureText(label) / 2;
+                c.drawText(label, Math.max(half, Math.min(W - half, mx)), labelBase, text);
             }
         }
 
+        private Paint labelPaint() { text.setTypeface(Ui.text500); text.setTextSize(26); return text; }
+
         private float x(float m, float a0, float a1, float w) {
-            return (m - a0) / (a1 - a0) * w;
+            return Math.max(0, Math.min(w, (m - a0) / (a1 - a0) * w));
         }
     }
 }
