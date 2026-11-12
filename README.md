@@ -1,44 +1,58 @@
 <h1 align="center">Fresco</h1>
 
 <p align="center"><b>A Fire TV launcher that turns your TV into a painting.</b><br>
-No ads, no autoplaying trailers, no sponsored rows. Just a masterpiece for the time of day, your apps, and a clock.</p>
+A classic painting for the time of day, your apps and a clock. No ads, autoplaying trailers or sponsored rows.</p>
 
 <p align="center"><img src="docs/screenshots/home.jpg" alt="Fresco's home screen: a classic painting fills the TV, with a small glass dock of apps at the bottom left and the time at the top right" width="100%"></p>
 
 ---
 
-## Why you'll like it
+## What it does
 
-**You'll never see Amazon's home screen again.** Press Home from anywhere, including straight after the TV wakes up, and you land on Fresco. Amazon's launcher stays installed underneath, untouched; Fresco simply steps in front of it every time.
+### Replaces Amazon's home screen
 
-**A different painting every morning, afternoon, evening and night.** Turner's *Fighting Temeraire* at sunset, Rembrandt's *Night Watch* by candlelight, Constable's *Hay Wain* on a summer afternoon. 20 masterpieces rotate through the day, each hand-cropped so no face or figure is cut off, and in December a set of 8 winter and Christmas paintings takes over. Prefer photographs? Choose Nature, Abstract or Space (NASA and Webb) instead, or Random.
+Home always opens Fresco, from inside any app and straight after the TV wakes. Amazon's launcher stays installed underneath, untouched, so there are no ads, autoplaying trailers or sponsored rows to scroll past.
 
-**A bedtime tint for the whole TV.** Fire OS has no night light, so Fresco brings one: a warm, dim amber layer over every app and video that fades in on your schedule and fades out in the morning. The Amazon Music button switches it on or off. Copy-protected apps like Prime Video are skipped automatically.
+### Paintings that follow the time of day
 
-**Only the apps you use.** A small glass dock holds one to four apps of your choosing, each drawn as a clean white mark that wakes in its brand colour when you land on it. Everything else is still one press away on the remote's Apps button.
-
-**Your remote, your way.** Make the Netflix and Prime Video buttons open the apps you actually use, or leave them alone.
-
-**Pick up where you left off.** If you use Stremio, press Down for your Continue watching row, and one press resumes the episode.
-
-**A screen you'll want to leave on.** Press Rewind and everything disappears except the painting and the clock.
-
-**Calm, quick and light.** Liquid-glass design built for viewing from the sofa, and Home in under half a second. It's plain Java with no libraries, and it lets go of its pictures while you're watching something else. No account, no tracking, no analytics.
-
-**Nothing permanent.** No root, nothing disabled. One command puts your Fire TV back exactly as it was.
-
-## A look around
-
-| | |
-|---|---|
-| ![Continue watching row with posters under the painting](docs/screenshots/continue-watching.jpg) | ![Ambient mode: only the painting and the clock](docs/screenshots/ambient.jpg) |
-| **Continue watching**: press Down on the home screen | **Ambient mode**: press Rewind |
-| ![Settings with the bedtime tint schedule drawn as a chart](docs/screenshots/settings-tint.jpg) | ![The bedtime tint previewed over settings](docs/screenshots/bedtime-tint.jpg) |
-| **Bedtime tint**: start, full strength, off and strength, drawn as you change them | **The tint itself**: dim, warm, and over every app |
-| ![Choosing a wallpaper style](docs/screenshots/wallpaper-styles.jpg) | ![The dock settings page](docs/screenshots/dock.jpg) |
-| **Wallpapers**: Art, Nature, Abstract, Space or Random | **Dock**: choose up to four apps |
+20 classic paintings rotate through morning, day, evening and night: Turner's *Fighting Temeraire* at sunset, Rembrandt's *Night Watch* by candlelight, Constable's *Hay Wain* on a summer afternoon. Each is cropped by hand so no face or figure is cut off, and a set of 8 winter and Christmas paintings takes over in December. Nature photographs, Abstract textures, Space (NASA and Webb) and Random are in settings too.
 
 <p align="center"><img src="docs/screenshots/paintings.jpg" alt="Eight of the paintings: Turner, Rembrandt, Constable, Aivazovsky, Claude Lorrain, Grimshaw, Bruegel and Cuyp" width="100%"></p>
+<p align="center"><img src="docs/screenshots/wallpaper-styles.jpg" alt="Choosing a wallpaper style: Nature, Art, Abstract, Space or Random" width="70%"></p>
+
+### A bedtime tint over every app
+
+Fire OS has no night light. Fresco dims and warms the whole picture, in every app and video, fading in on your schedule and out in the morning. The Amazon Music button (or fast-forward on the home screen) switches it on or off, and a second press goes back to the schedule. Copy-protected apps such as Prime Video are skipped automatically.
+
+<p align="center"><img src="docs/screenshots/settings-tint.jpg" alt="Settings with the bedtime tint schedule drawn as a chart" width="49%"> <img src="docs/screenshots/bedtime-tint.jpg" alt="The bedtime tint itself, dim and warm over the screen" width="49%"></p>
+
+### A dock of your apps
+
+One to four apps of your choice, each drawn as a white mark that turns its brand colour when selected. Netflix, Prime Video, BBC iPlayer, ITVX, Disney+, Spotify, Plex and more than 30 others have their own marks; anything else gets a monogram. Every other app is still one press away on the remote's Apps button.
+
+<p align="center"><img src="docs/screenshots/dock.jpg" alt="The Dock settings page: Stremio, YouTube and BBC iPlayer, with Add an app" width="70%"></p>
+
+### Remote buttons that open your apps
+
+Point the Netflix and Prime Video buttons at any installed app, or leave them as they are.
+
+<p align="center"><img src="docs/screenshots/remote-buttons.jpg" alt="Remote buttons in settings: Netflix button, Prime Video button and Amazon Music button" width="70%"></p>
+
+### Continue watching, for Stremio
+
+Press Down on the home screen for the shows you've played in the last week; one press resumes the episode.
+
+<p align="center"><img src="docs/screenshots/continue-watching.jpg" alt="The Continue watching row: posters beneath the painting" width="70%"></p>
+
+### Ambient mode
+
+Press Rewind and everything disappears except the painting and the clock. Any button brings the home screen back.
+
+<p align="center"><img src="docs/screenshots/ambient.jpg" alt="Ambient mode: only the painting and the clock" width="70%"></p>
+
+### Small and reversible
+
+Liquid-glass design made for viewing from the sofa, with Home in under half a second. It's plain Java with no libraries, and it releases its pictures while you're watching something else. No account, no tracking and no analytics. Nothing is rooted or disabled, and one command puts the Fire TV back exactly as it was.
 
 ## Install
 
