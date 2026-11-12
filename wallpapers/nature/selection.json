@@ -1,0 +1,407 @@
+{
+  "licence": "https://www.pexels.com/license/",
+  "themes": {
+    "mon": "Lakes",
+    "tue": "Forest",
+    "wed": "Meadows",
+    "thu": "Mountains",
+    "fri": "Coast",
+    "sat": "Snow",
+    "sun": "Autumn"
+  },
+  "notes": "crop fx/fy = focal point for the 16:9 cover crop (0 = left/top, 1 = right/bottom).",
+  "wallpapers": [
+    {
+      "slot": "morning",
+      "day": "mon",
+      "theme": "Lakes",
+      "photographer": "Tanika Pietilä",
+      "photographer_url": "https://www.pexels.com/@tanika-pietila-1955201/",
+      "page": "https://www.pexels.com/photo/photo-of-trees-near-calm-lake-3693623/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Mirror-still Finnish lake with a band of morning mist; open water under the dock, plain pale sky under the clock.",
+      "pexels_id": 3693623
+    },
+    {
+      "slot": "day",
+      "day": "mon",
+      "theme": "Lakes",
+      "photographer": "Robert Hrovat",
+      "photographer_url": "https://www.pexels.com/@robert-hrovat-2588654/",
+      "page": "https://www.pexels.com/photo/waterfront-autumn-trees-on-lake-13989657/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Alpine lake in autumn sun with larches and peaks reflected; calm reflection under the dock. (The small wooden jetty is the only structure.)",
+      "pexels_id": 13989657
+    },
+    {
+      "slot": "evening",
+      "day": "mon",
+      "theme": "Lakes",
+      "photographer": "Aliaksandr Shyliayeu",
+      "photographer_url": "https://www.pexels.com/@aliaksandr-shyliayeu-2996174/",
+      "page": "https://www.pexels.com/photo/scenery-of-placid-lake-under-pink-sky-4818958/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.45
+      },
+      "reason": "Pink sunset streaks doubled in a still forest lake; dark tree reflections under the dock, smooth sky under the clock.",
+      "pexels_id": 4818958
+    },
+    {
+      "slot": "night",
+      "day": "mon",
+      "theme": "Lakes",
+      "photographer": "Adam Krypel",
+      "photographer_url": "https://www.pexels.com/@adam-krypel-19165796/",
+      "page": "https://www.pexels.com/photo/a-starry-night-sky-over-a-lake-8731129/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.45
+      },
+      "reason": "Milky Way over a misty forest lake; dark mist-covered water under the dock.",
+      "pexels_id": 8731129
+    },
+    {
+      "slot": "morning",
+      "day": "tue",
+      "theme": "Forest",
+      "photographer": "Johannes Plenio",
+      "photographer_url": "https://www.pexels.com/@jplenio/",
+      "page": "https://www.pexels.com/photo/forest-in-foggy-morning-in-summer-4500037/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.6
+      },
+      "reason": "Spruce tops rising into bright morning fog; dark conifers under the dock, featureless mist under the clock.",
+      "pexels_id": 4500037
+    },
+    {
+      "slot": "day",
+      "day": "tue",
+      "theme": "Forest",
+      "photographer": "Christina & Peter",
+      "photographer_url": "https://www.pexels.com/@christina99999/",
+      "page": "https://www.pexels.com/photo/autumn-forest-with-vibrant-foliage-in-daylight-28959115/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.6
+      },
+      "reason": "Autumn woodland against a clear afternoon sky; deep shade under the dock, plain sky under the clock.",
+      "pexels_id": 28959115
+    },
+    {
+      "slot": "evening",
+      "day": "tue",
+      "theme": "Forest",
+      "photographer": "Tom Fisk",
+      "photographer_url": "https://www.pexels.com/@tomfisk/",
+      "page": "https://www.pexels.com/photo/moon-over-woods-11898748/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.6
+      },
+      "reason": "Last light on a woodland edge with the moon in a clear twilight sky; smooth gradient sky under the clock.",
+      "pexels_id": 11898748
+    },
+    {
+      "slot": "night",
+      "day": "tue",
+      "theme": "Forest",
+      "photographer": "Stijn Dijkstra",
+      "photographer_url": "https://www.pexels.com/@stijn-dijkstra-1306815/",
+      "page": "https://www.pexels.com/photo/low-angle-view-of-trees-and-aurora-borealis-in-the-sky-16747790/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.4
+      },
+      "reason": "Aurora behind tall pines (tagged evening, but it is full night, so re-slotted); near-black under the dock.",
+      "pexels_id": 16747790
+    },
+    {
+      "slot": "morning",
+      "day": "wed",
+      "theme": "Meadows",
+      "photographer": "Ole Thomsen",
+      "photographer_url": "https://www.pexels.com/@ole-thomsen-509076846/",
+      "page": "https://www.pexels.com/photo/misty-morning-sunrise-over-danish-field-29168834/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Pre-dawn mist lying over fields with silhouetted tree islands under a peach sky.",
+      "pexels_id": 29168834
+    },
+    {
+      "slot": "day",
+      "day": "wed",
+      "theme": "Meadows",
+      "photographer": "Aydın Photography",
+      "photographer_url": "https://www.pexels.com/@aydin-photography-298758980/",
+      "page": "https://www.pexels.com/photo/two-trees-on-a-grassland-22539163/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Blossoming tree in a green spring meadow under a clear blue sky; grass under the dock, open sky under the clock.",
+      "pexels_id": 22539163
+    },
+    {
+      "slot": "evening",
+      "day": "wed",
+      "theme": "Meadows",
+      "photographer": "Andreas Ebner",
+      "photographer_url": "https://www.pexels.com/@andreasebnerfotografie/",
+      "page": "https://www.pexels.com/photo/sunset-over-a-field-and-trees-in-the-countryside-15985736/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Low sun flaring through a treeline over a ripe wheat field; dark field under the dock, dim sky under the clock.",
+      "pexels_id": 15985736
+    },
+    {
+      "slot": "night",
+      "day": "wed",
+      "theme": "Meadows",
+      "photographer": "Kyrylo Zahorodniy",
+      "photographer_url": "https://www.pexels.com/@kyrylo-zahorodniy-211352452/",
+      "page": "https://www.pexels.com/photo/stars-and-milky-way-on-night-sky-16383429/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.35
+      },
+      "reason": "Milky Way rising over a meadow and a copse of trees; dark grass under the dock.",
+      "pexels_id": 16383429
+    },
+    {
+      "slot": "morning",
+      "day": "thu",
+      "theme": "Mountains",
+      "photographer": "Jan Brndiar",
+      "photographer_url": "https://www.pexels.com/@jan-brndiar-809427026/",
+      "page": "https://www.pexels.com/photo/sunrise-over-forested-mountain-landscape-in-autumn-28926068/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.0
+      },
+      "reason": "Sunrise lighting a peak above cloud and rolling forested hills (top-anchored crop keeps the distant farm buildings small).",
+      "pexels_id": 28926068
+    },
+    {
+      "slot": "day",
+      "day": "thu",
+      "theme": "Mountains",
+      "photographer": "Jasminka Cerimovic",
+      "photographer_url": "https://www.pexels.com/@jasminka-cerimovic-129684296/",
+      "page": "https://www.pexels.com/photo/scenic-summer-landscape-20943861/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.0
+      },
+      "reason": "Green mountainside and spruce forest in summer sun; top-anchored crop puts blue sky, not cloud, under the clock.",
+      "pexels_id": 20943861
+    },
+    {
+      "slot": "evening",
+      "day": "thu",
+      "theme": "Mountains",
+      "photographer": "Maël BALLAND",
+      "photographer_url": "https://www.pexels.com/@toulouse/",
+      "page": "https://www.pexels.com/photo/river-and-silhouetted-mountains-10807656/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Mountain lake at late blue hour with the last pink cloud wisps; the dark shore under the dock and deep blue sky under the clock (tagged evening; checked: still dusk, not night).",
+      "pexels_id": 10807656
+    },
+    {
+      "slot": "night",
+      "day": "thu",
+      "theme": "Mountains",
+      "photographer": "Marek Piwnicki",
+      "photographer_url": "https://www.pexels.com/@marek-piwnicki-3907296/",
+      "page": "https://www.pexels.com/photo/silhouette-of-rock-mountains-under-the-starry-sky-9202295/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.4
+      },
+      "reason": "Milky Way over Swiss peaks with a faint glow on the horizon; dark mountainside under the dock.",
+      "pexels_id": 9202295
+    },
+    {
+      "slot": "morning",
+      "day": "fri",
+      "theme": "Coast",
+      "photographer": "Daniel Lohin",
+      "photographer_url": "https://www.pexels.com/@daniel-lohin-455880613/",
+      "page": "https://www.pexels.com/photo/majestic-clouds-at-sunset-over-beach-15559009/",
+      "crop": {
+        "fx": 1.0,
+        "fy": 0.5
+      },
+      "reason": "Sand dunes at twilight with stars still out and the glow low on the horizon (tagged dusk, reads equally as pre-dawn); crop pushed right to move the glow off the dock.",
+      "pexels_id": 15559009
+    },
+    {
+      "slot": "day",
+      "day": "fri",
+      "theme": "Coast",
+      "photographer": "Alexandra Kirikova",
+      "photographer_url": "https://www.pexels.com/@alexandra-kirikova-1382675660/",
+      "page": "https://www.pexels.com/photo/scenic-cornish-coastline-with-cliffs-and-beach-34675301/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.6
+      },
+      "reason": "Cornish coast in summer: beach, rocks and turquoise water; soft-focus foliage under the dock.",
+      "pexels_id": 34675301
+    },
+    {
+      "slot": "evening",
+      "day": "fri",
+      "theme": "Coast",
+      "photographer": "stein egil liland",
+      "photographer_url": "https://www.pexels.com/@therato/",
+      "page": "https://www.pexels.com/photo/a-snow-covered-landscape-under-evening-sky-13398846/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.6
+      },
+      "reason": "Full moon rising beside snowy coastal peaks at blue hour; still water under the dock.",
+      "pexels_id": 13398846
+    },
+    {
+      "slot": "night",
+      "day": "fri",
+      "theme": "Coast",
+      "photographer": "Francesco Ungaro",
+      "photographer_url": "https://www.pexels.com/@francesco-ungaro/",
+      "page": "https://www.pexels.com/photo/aurora-borealis-over-snowy-mountains-at-night-30267514/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Aurora low over snow-capped sea peaks under a starry sky; dark sky under the dock and clock.",
+      "pexels_id": 30267514
+    },
+    {
+      "slot": "morning",
+      "day": "sat",
+      "theme": "Snow",
+      "photographer": "Johannes Plenio",
+      "photographer_url": "https://www.pexels.com/@jplenio/",
+      "page": "https://www.pexels.com/photo/photo-of-snow-coated-trees-and-grass-surrounded-by-snow-1114885/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Frost-covered trees on a snowy shore, low sun glowing through freezing fog.",
+      "pexels_id": 1114885
+    },
+    {
+      "slot": "day",
+      "day": "sat",
+      "theme": "Snow",
+      "photographer": "Yılmaz OBA",
+      "photographer_url": "https://www.pexels.com/@yilmaz-oba-19681079/",
+      "page": "https://www.pexels.com/photo/serene-winter-forest-with-snow-covered-trees-30738203/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Sunlit snowy firs under a deep blue afternoon sky; clean blue under the clock.",
+      "pexels_id": 30738203
+    },
+    {
+      "slot": "evening",
+      "day": "sat",
+      "theme": "Snow",
+      "photographer": "Raul Ling",
+      "photographer_url": "https://www.pexels.com/@raulling/",
+      "page": "https://www.pexels.com/photo/serene-snowy-pine-forest-at-twilight-29841995/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.6
+      },
+      "reason": "Snow-laden pines in a bog at sunset, tops lit orange, pastel sky; plain snow under the dock.",
+      "pexels_id": 29841995
+    },
+    {
+      "slot": "night",
+      "day": "sat",
+      "theme": "Snow",
+      "photographer": "Uzair Ansari",
+      "photographer_url": "https://www.pexels.com/@uzair-ansari-181006102/",
+      "page": "https://www.pexels.com/photo/mountain-range-against-the-starry-sky-at-dawn-14696300/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.6
+      },
+      "reason": "Moonlit snowy ridge under a dense starfield; dark forest under the dock.",
+      "pexels_id": 14696300
+    },
+    {
+      "slot": "morning",
+      "day": "sun",
+      "theme": "Autumn",
+      "photographer": "Christina & Peter",
+      "photographer_url": "https://www.pexels.com/@christina99999/",
+      "page": "https://www.pexels.com/photo/serene-autumn-morning-landscape-in-misty-meadow-29231560/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.6
+      },
+      "reason": "Frosted green field and autumn-coloured hills in clear early light.",
+      "pexels_id": 29231560
+    },
+    {
+      "slot": "day",
+      "day": "sun",
+      "theme": "Autumn",
+      "photographer": "Hicran sönmez",
+      "photographer_url": "https://www.pexels.com/@hicran-sonmez-993686621/",
+      "page": "https://www.pexels.com/photo/autumn-forest-by-lake-20231746/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.75
+      },
+      "reason": "Copper autumn forest mirrored in a calm lake; lower crop keeps the clock over dark trees rather than sky.",
+      "pexels_id": 20231746
+    },
+    {
+      "slot": "evening",
+      "day": "sun",
+      "theme": "Autumn",
+      "photographer": "Tom Fisk",
+      "photographer_url": "https://www.pexels.com/@tomfisk/",
+      "page": "https://www.pexels.com/photo/serene-autumn-sunset-over-ella-wisconsin-river-29534404/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Sunset over a wide autumn forest and the river reflecting it.",
+      "pexels_id": 29534404
+    },
+    {
+      "slot": "night",
+      "day": "sun",
+      "theme": "Autumn",
+      "photographer": "eberhard grossgasteiger",
+      "photographer_url": "https://www.pexels.com/@eberhardgross/",
+      "page": "https://www.pexels.com/photo/stars-on-sky-over-snowcapped-mountain-10620139/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Stars over a snowy peak between larch slopes in autumn colour (tagged evening, but it is night, so re-slotted).",
+      "pexels_id": 10620139
+    }
+  ]
+}

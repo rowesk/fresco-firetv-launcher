@@ -1,0 +1,411 @@
+{
+  "licence": {
+    "Pexels": "https://www.pexels.com/license/",
+    "Unsplash": "https://unsplash.com/license"
+  },
+  "themes": {
+    "mon": "Sand",
+    "tue": "Water",
+    "wed": "Ice",
+    "thu": "Stone",
+    "fri": "Dunes",
+    "sat": "Snow",
+    "sun": "Sea"
+  },
+  "notes": "crop fx/fy = focal point for the 16:9 cover crop (0 = left/top, 1 = right/bottom).",
+  "wallpapers": [
+    {
+      "slot": "morning",
+      "day": "mon",
+      "theme": "Sand",
+      "photographer": "Alejandro Henriquez",
+      "photographer_url": "https://www.pexels.com/@alejandro-henriquez-558322658/",
+      "page": "https://www.pexels.com/photo/view-of-ripples-on-the-sand-19215108/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Pale cream wind ripples in soft sun, edge to edge; even tone under the dock and the clock.",
+      "pexels_id": 19215108
+    },
+    {
+      "slot": "day",
+      "day": "mon",
+      "theme": "Sand",
+      "photographer": "Jan van der Wolf",
+      "photographer_url": "https://www.pexels.com/@jan-van-der-wolf-11680885/",
+      "page": "https://www.pexels.com/photo/ripples-in-the-sand-on-a-sunny-beach-33009539/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Sunlit golden beach ripples with crisp short shadows; a bright, clear midday texture.",
+      "pexels_id": 33009539
+    },
+    {
+      "slot": "evening",
+      "day": "mon",
+      "theme": "Sand",
+      "photographer": "Aneesh Thazhathethil",
+      "photographer_url": "https://www.pexels.com/@aneesh-thazhathethil-2158504385/",
+      "page": "https://www.pexels.com/photo/golden-sand-dunes-at-sunset-in-kuwait-36259799/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Low sun catches only the ridge tops: gold on near-black sand, long raking shadows.",
+      "pexels_id": 36259799
+    },
+    {
+      "slot": "night",
+      "day": "mon",
+      "theme": "Sand",
+      "photographer": "Adrien Olichon",
+      "photographer_url": "https://www.pexels.com/@adrien-olichon-1257089/",
+      "page": "https://www.pexels.com/photo/black-and-white-photography-of-sand-2387819/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "The near-black wind-sculpted sand from the brief itself; fine grain, no gradients to band.",
+      "pexels_id": 2387819
+    },
+    {
+      "slot": "morning",
+      "day": "tue",
+      "theme": "Water",
+      "photographer": "Sam Forson",
+      "photographer_url": "https://www.pexels.com/@samforson/",
+      "page": "https://www.pexels.com/photo/body-of-water-under-fog-154246/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Fog lying on still water: pale grey-blue, almost featureless. (The water melts into fog about halfway up, the only soft horizon in the set.)",
+      "pexels_id": 154246
+    },
+    {
+      "slot": "day",
+      "day": "tue",
+      "theme": "Water",
+      "photographer": "Jess Loiterton",
+      "photographer_url": "https://www.pexels.com/@jess-vide/",
+      "page": "https://www.pexels.com/photo/view-of-water-4783700/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Turquoise shallows from above with faint ripples over pale sand; saturated and calm.",
+      "pexels_id": 4783700
+    },
+    {
+      "slot": "evening",
+      "day": "tue",
+      "theme": "Water",
+      "photographer": "Hannah Barata",
+      "photographer_url": "https://www.pexels.com/@hannah-barata-776560167/",
+      "page": "https://www.pexels.com/photo/a-sunset-over-the-water-with-waves-27935420/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 1.0
+      },
+      "reason": "Rose-violet water streaked with gold; cropped low so the sun glare stays off the clock.",
+      "pexels_id": 27935420
+    },
+    {
+      "slot": "night",
+      "day": "tue",
+      "theme": "Water",
+      "photographer": "Ad Thiry",
+      "photographer_url": "https://www.pexels.com/@adthiry/",
+      "page": "https://www.pexels.com/photo/wavy-blue-water-surface-17681809/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Deep blue fine ripples, close to the third example; very smooth, so it took q88 to pass the banding check.",
+      "pexels_id": 17681809
+    },
+    {
+      "slot": "morning",
+      "day": "wed",
+      "theme": "Ice",
+      "photographer": "Steve Whitelok",
+      "photographer_url": "https://www.pexels.com/@steve-whitelok-1142436/",
+      "page": "https://www.pexels.com/photo/frost-on-window-pane-15111793/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Silver frost feathers on glass, brightest in the middle; quiet grey under the dock.",
+      "pexels_id": 15111793
+    },
+    {
+      "slot": "day",
+      "day": "wed",
+      "theme": "Ice",
+      "photographer": "Fernando Ortiz",
+      "photographer_url": "https://www.pexels.com/@fernando-ortiz-2149287943/",
+      "page": "https://www.pexels.com/photo/abstract-winter-ice-patterns-on-frozen-lake-31010326/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Blue lake ice laced with fine white cracks; an even all-over pattern.",
+      "pexels_id": 31010326
+    },
+    {
+      "slot": "evening",
+      "day": "wed",
+      "theme": "Ice",
+      "photographer": "wal_ 172619",
+      "photographer_url": "https://www.pexels.com/@wal_-172619-2156618639/",
+      "page": "https://www.pexels.com/photo/abstract-ice-pattern-with-golden-light-reflection-36179461/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Broken plate ice on dark water, each edge lit gold by the low sun.",
+      "pexels_id": 36179461
+    },
+    {
+      "slot": "night",
+      "day": "wed",
+      "theme": "Ice",
+      "photographer": "Viktoriia Ananeva",
+      "photographer_url": "https://unsplash.com/@victoriaan",
+      "page": "https://unsplash.com/photos/abstract-pattern-of-ice-and-snow-lUxiT980nQs",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Frost blooms frozen into black ice; dark, soft and even. (Portrait original, so the crop is the middle third.)",
+      "unsplash_id": "lUxiT980nQs",
+      "unsplash_image": "photo-1761639383864-f9e01c585d03"
+    },
+    {
+      "slot": "morning",
+      "day": "thu",
+      "theme": "Stone",
+      "photographer": "CHRISTIAN HEMBERT",
+      "photographer_url": "https://www.pexels.com/@christian-hembert-418917769/",
+      "page": "https://www.pexels.com/photo/rough-texture-of-rock-15079523/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Cream sandstone with contour-like swirls; pale and warm, very sharp.",
+      "pexels_id": 15079523
+    },
+    {
+      "slot": "day",
+      "day": "thu",
+      "theme": "Stone",
+      "photographer": "Rino Adamo",
+      "photographer_url": "https://www.pexels.com/@rinoadamo/",
+      "page": "https://www.pexels.com/photo/natural-sandstone-texture-with-striations-35939765/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Banded red and cream sandstone in full light; bold but one colour family. (3667 px original.)",
+      "pexels_id": 35939765
+    },
+    {
+      "slot": "evening",
+      "day": "thu",
+      "theme": "Stone",
+      "photographer": "Alfo Medeiros",
+      "photographer_url": "https://www.pexels.com/@alfomedeiros/",
+      "page": "https://www.pexels.com/photo/sandstone-on-a-desert-19371596/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Amber and rust sandstone flowing diagonally, like warm evening light on rock.",
+      "pexels_id": 19371596
+    },
+    {
+      "slot": "night",
+      "day": "thu",
+      "theme": "Stone",
+      "photographer": "Akbar Nemati",
+      "photographer_url": "https://www.pexels.com/@akbar-nemati-220109/",
+      "page": "https://www.pexels.com/photo/rough-texture-of-dark-rock-18325725/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Dark green-black schist with a fine diagonal grain; low-key and uniform.",
+      "pexels_id": 18325725
+    },
+    {
+      "slot": "morning",
+      "day": "fri",
+      "theme": "Dunes",
+      "photographer": "Zetong Li",
+      "photographer_url": "https://www.pexels.com/@zetong-li-880728/",
+      "page": "https://www.pexels.com/photo/barren-sand-on-desert-16936446/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Pale dunes in soft early light with cool blue shadows. (A few tiny shrubs mid-right.)",
+      "pexels_id": 16936446
+    },
+    {
+      "slot": "day",
+      "day": "fri",
+      "theme": "Dunes",
+      "photographer": "光曦 刘",
+      "photographer_url": "https://www.pexels.com/@liuguangxi/",
+      "page": "https://www.pexels.com/photo/sand-dunes-in-the-desert-16908855/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "One clean orange dune crest in strong light; the shaded flank sits under the dock.",
+      "pexels_id": 16908855
+    },
+    {
+      "slot": "evening",
+      "day": "fri",
+      "theme": "Dunes",
+      "photographer": "Sergey Guk",
+      "photographer_url": "https://www.pexels.com/@gsn-travel/",
+      "page": "https://www.pexels.com/photo/golden-sand-dunes-at-sunset-in-colorado-28906256/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Layered dune crests in last light, gold edges over long blue shadows.",
+      "pexels_id": 28906256
+    },
+    {
+      "slot": "night",
+      "day": "fri",
+      "theme": "Dunes",
+      "photographer": "Marjan Taghipour",
+      "photographer_url": "https://www.pexels.com/@marjan-taghipour-306415692/",
+      "page": "https://www.pexels.com/photo/desert-sand-with-ripples-with-night-sky-13620627/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "A dune crest against black, rippled flank in faint light; the black corner sits under the clock.",
+      "pexels_id": 13620627
+    },
+    {
+      "slot": "morning",
+      "day": "sat",
+      "theme": "Snow",
+      "photographer": "Ronika",
+      "photographer_url": "https://www.pexels.com/@filronic/",
+      "page": "https://www.pexels.com/photo/photo-of-a-snow-10339469/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Soft lilac snow slopes with gentle shadow; the calmest image in the set.",
+      "pexels_id": 10339469
+    },
+    {
+      "slot": "day",
+      "day": "sat",
+      "theme": "Snow",
+      "photographer": "wal_ 172619",
+      "photographer_url": "https://www.pexels.com/@wal_-172619-2156618639/",
+      "page": "https://www.pexels.com/photo/serene-snow-texture-with-soft-shadows-36091334/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Bright snow cut by cobalt shadow arcs; crisp, clear and saturated.",
+      "pexels_id": 36091334
+    },
+    {
+      "slot": "evening",
+      "day": "sat",
+      "theme": "Snow",
+      "photographer": "Surdu Horia",
+      "photographer_url": "https://www.pexels.com/@surdu-horia-743788511/",
+      "page": "https://www.pexels.com/photo/elegant-snow-dunes-in-golden-sunset-light-30231481/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Snow mounds lit gold from low behind, blue in the hollows.",
+      "pexels_id": 30231481
+    },
+    {
+      "slot": "night",
+      "day": "sat",
+      "theme": "Snow",
+      "photographer": "Luca Photo",
+      "photographer_url": "https://www.pexels.com/@lucaphoto/",
+      "page": "https://www.pexels.com/photo/abstract-aerial-view-of-snowy-landscape-37685893/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 1.0
+      },
+      "reason": "Wind-carved snow in blue-hour shade; cropped low to keep the darker half. (The lightest night image.)",
+      "pexels_id": 37685893
+    },
+    {
+      "slot": "morning",
+      "day": "sun",
+      "theme": "Sea",
+      "photographer": "Jan van der Wolf",
+      "photographer_url": "https://www.pexels.com/@jan-van-der-wolf-11680885/",
+      "page": "https://www.pexels.com/photo/a-bird-flies-over-the-ocean-with-waves-28169375/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Open sea from above, silver-blue and glittering; no bird in frame despite the Pexels title.",
+      "pexels_id": 28169375
+    },
+    {
+      "slot": "day",
+      "day": "sun",
+      "theme": "Sea",
+      "photographer": "Gülşah PEHLİVAN",
+      "photographer_url": "https://www.pexels.com/@thegulsah/",
+      "page": "https://www.pexels.com/photo/turquoise-ocean-water-surface-7338890/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Teal ocean with white foam trails from above; lively but one colour family.",
+      "pexels_id": 7338890
+    },
+    {
+      "slot": "evening",
+      "day": "sun",
+      "theme": "Sea",
+      "photographer": "kevin grieve",
+      "photographer_url": "https://www.pexels.com/@kevin-grieve-99378594/",
+      "page": "https://www.pexels.com/photo/a-close-up-shot-of-a-water-surface-10420765/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Blue swell carrying amber sunset reflections.",
+      "pexels_id": 10420765
+    },
+    {
+      "slot": "night",
+      "day": "sun",
+      "theme": "Sea",
+      "photographer": "Kris Møklebust",
+      "photographer_url": "https://www.pexels.com/@moklebust/",
+      "page": "https://www.pexels.com/photo/dark-ocean-waves-with-reflective-light-patterns-34155535/",
+      "crop": {
+        "fx": 0.5,
+        "fy": 0.5
+      },
+      "reason": "Near-black teal sea with faint luminous veins of light.",
+      "pexels_id": 34155535
+    }
+  ]
+}

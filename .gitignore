@@ -1,0 +1,16 @@
+# Build output and signing keys
+app/build/
+*.apk
+*.idsig
+*.keystore
+*.jks
+keystore.properties
+
+# Pexels/Unsplash photos: downloaded and prepared by wallpapers/photos.py, never committed
+wallpapers/nature/out/
+wallpapers/nature/originals/
+wallpapers/abstract/out/
+wallpapers/abstract/originals/
+
+.DS_Store
+__pycache__/

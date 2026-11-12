@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Amazon home shows the tile by this label, and the Home trick clicks the tile with this exact text. -->
+    <string name="app_name">Fresco</string>
+    <string name="service_description">Takes Home to Fresco, draws the bedtime tint, and lets you choose what the Netflix, Prime Video and Amazon Music buttons do.</string>
+</resources>
