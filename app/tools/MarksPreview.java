@@ -52,7 +52,7 @@ public final class MarksPreview {
                 {"viaplay", "Viaplay"}, {"zdf", "ZDF"}, {"fubo", "Fubo"}, {"deezer", "Deezer"}, {"tidal", "TIDAL"},
                 {"primevideo", "Prime Video *"}, {"disneyplus", "Disney+ *"}, {"iplayer", "BBC iPlayer *"},
                 {"my5", "My5 *"}, {"amazonmusic", "Amazon Music *"}, {"u", "U *"}, {"plutotv", "Pluto TV *"},
-                {"peacock", "Peacock *"}, {"hulu", "Hulu *"}, {"xboxcloud", "Xbox Cloud *"}, {"moonlight", "Moonlight *"}};
+                {"peacock", "Peacock *"}, {"hulu", "Hulu *"}, {"xboxcloud", "Xbox Cloud *"}, {"moonlight", "Moonlight *"}, {"fireplace", "Fireplace *"}};
         for (String[] e : n) names.put(e[0], e[1]);
 
         List<Object[]> entries = new ArrayList<>();

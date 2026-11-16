@@ -21,6 +21,10 @@ sheet="${1:-build/marks-preview.png}"
 python3 -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).convert("RGB").resize((1920, 1080)).save(sys.argv[2])' \
     ../wallpapers/art/out/everyday/day-3.webp "$out/bg.png"
 # android.jar is only there so Marks.java and Ui.java compile; the tool uses their constants, not Android.
-javac -nowarn -d "$out" -classpath "$ANDROID_JAR" src/io/github/rowesk/fresco/{MarkArt,Marks,Ui}.java tools/MarksPreview.java 2>&1 \
+# Marks.row() calls Apps, which pulls in the whole app, so a stand-in Apps is enough here.
+mkdir -p "$out/stub"
+print 'package io.github.rowesk.fresco; final class Apps { static android.graphics.Bitmap[] marks(android.content.Context c, String p) { return null; } }' \
+    > "$out/stub/Apps.java"
+javac -nowarn -d "$out" -classpath "$ANDROID_JAR" src/io/github/rowesk/fresco/{MarkArt,Marks,Ui}.java "$out/stub/Apps.java" tools/MarksPreview.java 2>&1 \
     | grep -v "bootstrap classpath" || true
 java -Djava.awt.headless=true -cp "$out:$ANDROID_JAR" io.github.rowesk.fresco.MarksPreview assets "$out/bg.png" "$sheet"

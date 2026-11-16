@@ -103,6 +103,8 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
     private View veil;
 
     private int mode = HOME, zone = DOCK, app;
+    /** The sheet up is the Fireplace page, opened from its dock button rather than the gear. */
+    private boolean sheetFromDock;
     private boolean started, resumed, attached, bound, arrived, homeArrival = true, rowDataPending, changing;
     /** From the start of a wallpaper change until its sharp photo is up: the screen must stay on the blur. */
     private boolean awaitingPhoto;
@@ -183,7 +185,7 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
             maybeArrive();
         });
         // After the decode has started. A docked app may have been uninstalled while we were away.
-        List<String> d = Apps.dock(this);
+        List<String> d = Apps.dockWithExtras(this);
         if (!d.equals(dockApps)) setDock(d);
     }
 
@@ -405,7 +407,7 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         veil.setBackgroundColor(0xFF000000);
 
         for (View v : new View[]{content, stage}) v.setFocusable(false);
-        setDock(Apps.dock(this));
+        setDock(Apps.dockWithExtras(this));
     }
 
     /**
@@ -786,6 +788,7 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
 
     private void resetHome() {
         mode = HOME;
+        sheetFromDock = false;
         zone = DOCK;
         app = Math.max(0, dockApps.indexOf(prefs.lastApp()));
         if (settings.isOpen()) settings.closeNow();
@@ -839,20 +842,33 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
     // ------------------------------------------------------------------ settings
 
     private void openSettings() {
+        openSheet(false);
+    }
+
+    /** The Fireplace button: the fires' page on its own, in settings' sheet. Back returns to the button. */
+    private void openFireplace() {
+        openSheet(true);
+    }
+
+    private void openSheet(boolean fireplace) {
         if (mode != HOME) return;
         mode = SETTINGS;
+        sheetFromDock = fireplace;
         Anim.to(wallBlur, View.ALPHA, 1, 340, Ui.STD, 0);
         Anim.to(plane, View.ALPHA, 0, 220, Ui.IN, 0);
         Anim.to(clock, View.ALPHA, 0, 200, Ui.IN, 0);
         Anim.alphaWithLayer(gearWrap, 0, 200, Ui.IN, 0);
         Anim.to(scrimBottom, View.ALPHA, 0, 300, Ui.STD, 0);
-        settings.open();
+        if (fireplace) settings.openFireplace();
+        else settings.open();
     }
 
     private void closeSettings() {
         settings.close();
         mode = HOME;
-        zone = GEAR;
+        boolean fromDock = sheetFromDock;
+        sheetFromDock = false;
+        zone = fromDock ? DOCK : GEAR;
         // Closed in the middle of a wallpaper change (a style was just picked): the new photo isn't up
         // yet, so stay on the blur; the change refocuses itself when the photo arrives.
         if (!awaitingPhoto) Anim.to(wallBlur, View.ALPHA, 0, 360, Ui.STD, 60);
@@ -861,7 +877,8 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
         Anim.alphaWithLayer(gearWrap, 1, 300, Ui.OUT, 120);
         Anim.to(scrimBottom, View.ALPHA, 1, 300, Ui.STD, 60);
         Anim.set(gearIcon, View.ROTATION, 0);
-        gearFocus(true, true);
+        if (fromDock) dockFocus(app, true, app);
+        else gearFocus(true, true);
     }
 
     @Override
@@ -894,7 +911,22 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
 
     @Override
     public void dockChanged() {
-        setDock(Apps.dock(this));
+        setDock(Apps.dockWithExtras(this));
+    }
+
+    @Override
+    public void openFire(int which) {
+        Fireplace.Fire fire = Fireplace.FIRES[which];
+        prefs.setLastApp(Fireplace.DOCK_ID);
+        Intent i = Fireplace.intent(fire);
+        Log.i(TAG, "fireplace: opening " + fire.name + " " + i.getData());
+        try {
+            startActivity(i);
+            FrescoService s = FrescoService.get();
+            if (s != null) s.expectFire(i);
+        } catch (Exception e) {
+            Log.e(TAG, "could not open " + i.getData(), e);
+        }
     }
 
     @Override
@@ -913,6 +945,10 @@ public class HomeActivity extends Activity implements StremioClient.Listener, Se
     private void launchApp(int which) {
         if (which >= dockApps.size()) return;
         String pkg = dockApps.get(which);
+        if (Fireplace.DOCK_ID.equals(pkg)) {
+            openFireplace();
+            return;
+        }
         prefs.setLastApp(pkg);
         Intent i = Apps.launchIntent(this, pkg);
         try {

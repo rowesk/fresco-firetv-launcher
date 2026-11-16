@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.media.AudioManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -134,6 +135,17 @@ public class FrescoService extends AccessibilityService {
     /** Some addons put their name first ("Torrentio 4k HDR"); a resolution anywhere also counts. */
     private static final Pattern RESOLUTION = Pattern.compile("(?i)\\b(4k|2160p|1440p|1080p|720p|576p|480p)\\b");
 
+    /**
+     * A fire opened from the Fireplace page. YouTube can forget the link it was opened with: if it has
+     * been idle a while it asks "Who's watching?" first and then shows its own home page. Its screens
+     * are opaque to accessibility, so we tell a fire that's playing by its sound: no media playing a few
+     * seconds after a Select in YouTube means the link was lost, and it goes again.
+     */
+    private static final long FIRE_RESEND_AFTER_SELECT_MS = 5000;
+    private static final int FIRE_MAX_RESENDS = 2;
+    /** Checks for the fire's sound, once a second, for this long after it was opened. */
+    private static final long FIRE_WATCH_MS = 120_000;
+
     private static volatile FrescoService instance;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -168,6 +180,17 @@ public class FrescoService extends AccessibilityService {
         }
     };
     private boolean screenOnRegistered;
+
+    /** Non-null from opening a fire until YouTube leaves the screen. */
+    private Intent fire;
+    private long fireSince;
+    /** Its sound has been heard, so it's playing and the link wasn't lost. */
+    private boolean firePlaying;
+    private int fireResends;
+    /** Back went down in the fire; its up is ours too. */
+    private boolean fireBackDown;
+    private final Runnable fireWatch = this::watchFire;
+    private final Runnable fireCheck = this::checkFireAfterSelect;
 
     static FrescoService get() {
         return instance;
@@ -243,7 +266,7 @@ public class FrescoService extends AccessibilityService {
             Log.i(TAG, "stremio: key pressed, leaving the sources alone");
             stopStreamSearch();
         }
-        return false;
+        return fire != null && onFireKey(event);
     }
 
     @Override
@@ -279,6 +302,9 @@ public class FrescoService extends AccessibilityService {
                 lastApp = new ComponentName(pkg.toString(), cls.toString());
             }
         }
+
+        // Anything else in front ends a fire; YouTube's own windows don't.
+        if (fire != null && activity && !YOUTUBE.getPackageName().contentEquals(pkg)) endFire("left YouTube for " + pkg);
 
         if (getPackageName().contentEquals(pkg)) {
             if (cover != null && HomeActivity.class.getName().contentEquals(cls)) {
@@ -600,6 +626,106 @@ public class FrescoService extends AccessibilityService {
         else if (node.getContentDescription() != null && depth == 0) out.add(node.getContentDescription().toString().trim());
         for (int i = 0; i < node.getChildCount(); i++) texts(node.getChild(i), out, depth + 1);
         return out;
+    }
+
+    // ---- the fireplace ----
+
+    /** Called right after the launcher opens a fire in YouTube (Fireplace.intent). */
+    void expectFire(Intent intent) {
+        handler.post(() -> {
+            fire = new Intent(intent);
+            fireSince = SystemClock.uptimeMillis();
+            firePlaying = false;
+            fireResends = 0;
+            fireBackDown = false;
+            handler.removeCallbacks(fireCheck);
+            handler.removeCallbacks(fireWatch);
+            handler.postDelayed(fireWatch, 1000);
+        });
+    }
+
+    private boolean youTubeInFront() {
+        return lastApp != null && YOUTUBE.getPackageName().equals(lastApp.getPackageName());
+    }
+
+    private boolean soundPlaying() {
+        AudioManager audio = getSystemService(AudioManager.class);
+        return audio != null && audio.isMusicActive();
+    }
+
+    /** Main thread: until the fire is heard, look once a second. */
+    private void watchFire() {
+        if (fire == null || firePlaying) return;
+        if (youTubeInFront() && soundPlaying()) {
+            firePlaying = true;
+            handler.removeCallbacks(fireCheck);
+            Log.i(TAG, "fireplace: playing after " + (SystemClock.uptimeMillis() - fireSince) + " ms");
+            return;
+        }
+        if (SystemClock.uptimeMillis() - fireSince < FIRE_WATCH_MS) handler.postDelayed(fireWatch, 1000);
+    }
+
+    /**
+     * Main thread, on a key while a fire is open in YouTube. Back goes home to Fresco (the fire was opened
+     * from there; YouTube's would show its own home page), and a Select that may have answered
+     * "Who's watching?" starts the check that sends the link again.
+     */
+    private boolean onFireKey(KeyEvent e) {
+        if (!youTubeInFront()) return false;
+        int code = e.getKeyCode();
+        if (code == KeyEvent.KEYCODE_BACK) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN) {
+                fireBackDown = true;
+                return true;
+            }
+            if (!fireBackDown) return false;
+            fireBackDown = false;
+            endFire("Back pressed");
+            Intent home = new Intent(this, HomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(home);
+            } catch (Exception ex) {
+                Log.e(TAG, "fireplace: could not go home", ex);
+            }
+            return true;
+        }
+        if (!firePlaying && e.getAction() == KeyEvent.ACTION_UP
+                && (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER)) {
+            handler.removeCallbacks(fireCheck);
+            handler.postDelayed(fireCheck, FIRE_RESEND_AFTER_SELECT_MS);
+        }
+        return false;
+    }
+
+    private void checkFireAfterSelect() {
+        if (fire == null || firePlaying || !youTubeInFront()) return;
+        if (soundPlaying()) {
+            firePlaying = true;
+            return;
+        }
+        if (fireResends >= FIRE_MAX_RESENDS) {
+            Log.i(TAG, "fireplace: still silent, leaving YouTube where it is");
+            return;
+        }
+        fireResends++;
+        Log.i(TAG, "fireplace: YouTube is silent after a Select (it may have asked who's watching), opening the fire again");
+        fireSince = SystemClock.uptimeMillis();
+        try {
+            startActivity(new Intent(fire));
+        } catch (Exception ex) {
+            Log.e(TAG, "fireplace: could not open the fire again", ex);
+        }
+        handler.removeCallbacks(fireWatch);
+        handler.postDelayed(fireWatch, 1000);
+    }
+
+    private void endFire(String why) {
+        if (fire == null) return;
+        Log.i(TAG, "fireplace: done (" + why + ")");
+        fire = null;
+        fireBackDown = false;
+        handler.removeCallbacks(fireCheck);
+        handler.removeCallbacks(fireWatch);
     }
 
     // ---- the tint, for launcher settings ----

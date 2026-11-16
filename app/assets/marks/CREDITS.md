@@ -57,5 +57,6 @@ Simple Icons doesn't carry these brands, so Fresco gives each one an original gl
 | `hulu.svg` | Hulu | A rounded lowercase h in green |
 | `xboxcloud.svg` | Xbox Cloud Gaming | A green cloud with a d-pad and buttons cut out |
 | `moonlight.svg` | Moonlight | A crescent |
+| `fireplace.svg` | Fresco's Fireplace button (not an app) | A flame, amber to red, with a white-hot core |
 
 Every other app gets a monogram: the first letter or digit of its name in Red Hat Display (OFL), cut from a rounded tile, coloured on focus from the app's icon.

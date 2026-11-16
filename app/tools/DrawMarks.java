@@ -121,6 +121,27 @@ public final class DrawMarks {
         Area moon = new Area(circle(50, 50, 38));
         moon.subtract(new Area(circle(67, 37, 31)));
         write(dir, "moonlight", layer(moon, null));
+
+        // Fireplace (Fresco's own dock button, not an app): a flame with a white-hot core.
+        Path2D flame = new Path2D.Double();
+        flame.moveTo(50, 92);
+        flame.curveTo(31, 92, 19, 79, 19, 62);
+        flame.curveTo(19, 49, 26, 40, 33, 30);
+        flame.curveTo(34, 38, 38, 44, 44, 46);
+        flame.curveTo(42, 30, 50, 17, 61, 8);
+        flame.curveTo(61, 22, 70, 32, 76, 42);
+        flame.curveTo(80, 49, 81, 55, 81, 62);
+        flame.curveTo(81, 79, 69, 92, 50, 92);
+        flame.closePath();
+        Path2D core = new Path2D.Double();
+        core.moveTo(50, 84);
+        core.curveTo(41, 84, 36, 78, 36, 71);
+        core.curveTo(36, 63, 42, 58, 48, 50);
+        core.curveTo(50, 57, 56, 60, 60, 64);
+        core.curveTo(63, 67, 64, 69, 64, 72);
+        core.curveTo(64, 79, 58, 84, 50, 84);
+        core.closePath();
+        write(dir, "fireplace", layer(flame, null), layer(core, "#fff"));
     }
 
     private static Ellipse2D circle(double cx, double cy, double r) {

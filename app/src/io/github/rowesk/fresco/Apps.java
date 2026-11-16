@@ -81,6 +81,7 @@ final class Apps {
 
     /** Stremio and YouTube keep their own names; others use their label, or the package if it's gone. */
     static String label(Context c, String pkg) {
+        if (Fireplace.DOCK_ID.equals(pkg)) return "Fireplace";
         if (FrescoService.STREMIO.getPackageName().equals(pkg)) return "Stremio";
         if (FrescoService.YOUTUBE.getPackageName().equals(pkg)) return "YouTube";
         PackageManager pm = c.getPackageManager();
@@ -149,6 +150,13 @@ final class Apps {
             if (out.size() < DOCK_MAX && !out.contains(pkg) && launchIntent(c, pkg) != null) out.add(pkg);
         }
         return out.isEmpty() ? defaultDock(c) : out;
+    }
+
+    /** What home's dock shows: the apps, then the Fireplace button when it's in season (Fireplace.inDock). */
+    static List<String> dockWithExtras(Context c) {
+        List<String> out = new ArrayList<>(dock(c));
+        if (Fireplace.inDock(c)) out.add(Fireplace.DOCK_ID);
+        return out;
     }
 
     /** The first two installed apps from DOCK_DEFAULTS, topped up from every launchable app. */

@@ -99,6 +99,9 @@ final class MarkArt {
             b("hulu", 0xFF1CE783, 0xFF0FAE5F, "com.hulu.plus", "com.hulu.livingroomplus").fit(.92f),
             b("xboxcloud", 0xFF1A9A1A, 0xFF0B5E0B, "gamepass.fire.tv", "com.microsoft.xboxone.smartglass"),
             b("moonlight", 0xFF7D8CFF, 0xFF3442C2, "com.limelight"),
+            // Fresco's own Fireplace button, which isn't an app: Fireplace.DOCK_ID, spelled out so
+            // tools/preview-marks.sh can build this file on its own.
+            b("fireplace", 0xFFFFB02E, 0xFFE8461E, "io.github.rowesk.fresco.fireplace"),
     };
 
     private static HashMap<String, Brand> byPackage;

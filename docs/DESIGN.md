@@ -315,12 +315,13 @@ The line under the dock names what is below:
 
 ### Settings rows
 
-The root has eyebrow **“Fresco”**, title **“Settings”**, and six destinations. It opens focused on Dock. The left column explains the focused item; the sheet has no internal section headings.
+The root has eyebrow **“Fresco”**, title **“Settings”**, and seven destinations. It opens focused on Dock. The left column explains the focused item; the sheet has no internal section headings.
 
 | Root row | Value / trailing slot | Context |
 |---|---|---|
 | Dock | “1 app” / “2 apps” etc. · › | “One to four apps sit in the glass dock on home. Home opens on the one you used last.” + miniature dock, no milk |
 | Wallpapers | Current style · › | “The picture behind home follows the time of day, from morning to night. Choose photographs, paintings, abstract colour or space, or let it pick.” |
+| Fireplace | “‹ At Christmas ›”, “‹ Always ›” or “‹ Never ›”: Left/Right steps (bumping at the ends), Select cycles. The dock behind follows at once | “A Fireplace button at the end of the dock opens log fires on YouTube.” + “It's there from 1 December to 6 January.” / “It's always there.” / “It's hidden.” |
 | Bedtime tint | Start – off time, or “Off” · › | Tint explanation + schedule graph |
 | Remote buttons | What Netflix and Prime Video open, e.g. “Stremio, YouTube”; “Default” if neither is reassigned · › | Remote-buttons explanation |
 | Stremio | Solid dot + “Connected”, or hollow dot + “Not signed in” | “Continue watching refreshes in the background, so home never waits for the internet.” Signed out: “Not signed in. Sign in from a computer: see the README. Only the login token is kept on the stick.” Select refreshes when connected |
@@ -339,6 +340,8 @@ The paragraph is “The dock shows these apps from left to right. Left and Right
 | Abstract | “Abstract colour and form for each time of day, a different set each day of the week.” |
 | Space | “Pictures of space for each time of day, a different set each day of the week.” |
 | Random | “Each time of day picks one of the four styles. It keeps that picture until the next time of day, even after a restart.” |
+
+**Fireplace page** — opened only by the dock's Fireplace button (a flame mark, `assets/marks/fireplace.svg`), as the sheet's root: eyebrow “Fresco”, title “Fireplace”, no back chevron. Four 148 px rows like Wallpapers: a 208 × 116 still from the middle of each video (YouTube's `mq2.jpg`, cached), the fire's name and a trailing ↗, since it opens outside the launcher. Focus starts on the fire chosen last. The left item title is the fire's name, and its paragraph says what plays, then “Eight hours long, on YouTube. Back brings you home.” Select presses the row and opens the video in YouTube; Back closes the sheet to the Fireplace button. While the fire is in front, the service turns Back into a return to Fresco (YouTube's own Back would show its home page), and if YouTube stays silent 5 s after a Select (it asked “Who's watching?” and dropped the link) it sends the link again, at most twice.
 
 **Bedtime tint** — eyebrow “‹ Settings”. “Every evening” has an amber switch; a 32 px gap precedes “Starts fading in”, “Full strength by”, “Turns off” and “Strength”; another 32 px gap precedes “Skip the tint in” (app count · ›). The four schedule rows fold away when disabled; the skip list stays.
 

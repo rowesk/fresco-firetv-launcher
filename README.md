@@ -53,6 +53,10 @@ If you use Stremio, press **Down** on the home screen to pull up the shows and f
 
 <p align="center"><img src="docs/screenshots/continue-watching.jpg" alt="Continue watching over The School of Athens: the first poster, Arrested Development, is lifted beneath its title and episode details" width="70%"></p>
 
+### Fireplace
+
+From 1 December to 6 January, a **Fireplace** button joins the end of the dock. It opens a page of four eight-hour 4K log fires on YouTube, one with just the crackle and three with Christmas music, each with a still from the fire. Pick one and it plays in the YouTube app; press **Back** and you're home again, rather than on YouTube's own home page. Settings → **Fireplace** can keep the button there all year or hide it. It needs the YouTube app, and the fires play with ads unless you have YouTube Premium.
+
 ### Ambient mode
 
 Press **Rewind** on the home screen to hide the dock and settings button, leaving only the painting and the clock in the corner. Press any button to bring the UI back.
@@ -61,7 +65,7 @@ Press **Rewind** on the home screen to hide the dock and settings button, leavin
 
 ### Lightweight & completely reversible
 
-Fire TV Sticks only have 1.5–2 GB of RAM, and heavy launchers cause background apps like Stremio or Plex to get killed. Fresco is written in plain Java with zero third-party libraries. It frees its wallpaper bitmaps the moment you open another app, uses 0% CPU at idle, and has no accounts, analytics, or network calls (aside from optional Stremio sync). It doesn't disable or modify any Amazon system packages, and uninstalling puts your Fire TV back to stock in seconds.
+Fire TV Sticks only have 1.5–2 GB of RAM, and heavy launchers cause background apps like Stremio or Plex to get killed. Fresco is written in plain Java with zero third-party libraries. It frees its wallpaper bitmaps the moment you open another app, uses 0% CPU at idle, and has no accounts, analytics, or network calls (aside from optional Stremio sync, and the fires' thumbnails from YouTube when you open the Fireplace page). It doesn't disable or modify any Amazon system packages, and uninstalling puts your Fire TV back to stock in seconds.
 
 ## Install
 
@@ -90,7 +94,7 @@ If you use Claude Code, Codex, Cursor, or OpenCode on a computer on the same Wi-
 3. **Pin Fresco to Amazon's home row (important for speed):**
    Press the **Apps** button on your remote (three squares), highlight **Fresco**, press **Menu** (☰), and select **Move to front**. *(This puts the tile where Fresco's accessibility service can click it to bypass Android's 5-second Home button delay.)*
 4. **Configure:**
-   Click the settings cog at the top right of Fresco. Its six destinations are **Dock**, **Wallpapers**, **Bedtime tint**, **Remote buttons**, **Stremio**, and **Fire TV settings**. Amazon's settings open outside Fresco; Back returns here.
+   Click the settings cog at the top right of Fresco. Its seven destinations are **Dock**, **Wallpapers**, **Fireplace**, **Bedtime tint**, **Remote buttons**, **Stremio**, and **Fire TV settings**. Amazon's settings open outside Fresco; Back returns here.
 
 **Optional — Stremio Continue Watching:** Run `DEVICE=192.168.1.50:5555 app/tools/stremio-login.sh` from your computer. It prompts for your Stremio login locally and saves only the auth token to the stick.
 

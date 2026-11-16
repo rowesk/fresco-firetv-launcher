@@ -43,15 +43,18 @@ final class SettingsController {
         void syncNow();
         int nowMinutes();
         void wallpaperStyleChanged();
-        /** The dock's apps or their order changed (Prefs.DOCK_APPS is already saved). */
+        /** The dock's apps or their order changed (Prefs.DOCK_APPS is already saved), or the Fireplace button's season did. */
         void dockChanged();
+        /** Opens Fireplace.FIRES[which] in YouTube. */
+        void openFire(int which);
     }
 
     static final int UP = 1, DOWN = 2, LEFT = 3, RIGHT = 4, SELECT = 5, BACK = 6;
 
     private static final int SHEET_W = 1000, SHEET_H = 920, ROW_H = 88;
     private static final String MAIN = "main", SKIP = "skip", PICK = "pick", WALLS = "walls",
-            TINT = "tint", REMOTE = "remote", DOCK = "dock", DOCK_ADD = "dockadd", BUTTON = "button:";
+            TINT = "tint", REMOTE = "remote", DOCK = "dock", DOCK_ADD = "dockadd", BUTTON = "button:",
+            FIRE = "fire";
     private static final int THUMB_W = 208, THUMB_H = 116;
 
     private final Context ctx;
@@ -89,6 +92,8 @@ final class SettingsController {
     private boolean previewing;
     /** The four styles' pictures for now, small, only while the Wallpapers page is up. */
     private final Bitmap[] thumbs = new Bitmap[4];
+    /** A still from each fire, only while the Fireplace page is up. */
+    private final Bitmap[] fireThumbs = new Bitmap[Fireplace.FIRES.length];
     private int thumbGen;
     private int style;
 
@@ -171,12 +176,22 @@ final class SettingsController {
     // ------------------------------------------------------------------ open / close
 
     void open() {
+        open(MAIN);
+    }
+
+    /** The Fireplace button: its page on its own, focused on the fire chosen last. Back closes it. */
+    void openFireplace() {
+        open(FIRE);
+    }
+
+    private void open(String rootPage) {
         open = true;
         readPrefs();
         skip = prefs.skipApps();
         dock = Apps.dock(ctx);
         pages.clear();
-        pages.add(MAIN);
+        pages.add(rootPage);
+        if (FIRE.equals(rootPage)) loadFireThumbs();
         returns.clear();
         ctxSec = null;
         context.removeAllViews();
@@ -189,12 +204,13 @@ final class SettingsController {
         sIdx = 0;
         removeArmed = false;
         renderRows();
+        if (FIRE.equals(rootPage)) sIdx = Math.min(prefs.fireplaceLast(), focRows().size() - 1);
         root.setVisibility(View.VISIBLE);
         Anim.fromTo(root, View.ALPHA, 0, 1, 260, Ui.OUT, 60);
         Anim.fromTo(sheetGroup, View.TRANSLATION_X, 48, 0, 440, Ui.OUT, 60);
         Anim.fromTo(sheetGroup, View.ALPHA, 0, 1, 440, Ui.OUT, 60);
         Anim.fromTo(left, View.TRANSLATION_X, -24, 0, 440, Ui.OUT, 60);
-        focus(0, false, false);
+        focus(sIdx, false, false);
         for (int i = 0; i < rows.size() && i < 10; i++) {
             View v = rows.get(i).view;
             Anim.fromTo(v, View.TRANSLATION_X, 28, 0, 360, Ui.OUT, 140 + 20L * i);
@@ -234,6 +250,7 @@ final class SettingsController {
     /** Back on screen with the Wallpapers page still up: decode its thumbnails again. */
     void restoreImages() {
         if (open && WALLS.equals(pages.get(pages.size() - 1)) && thumbs[0] == null) loadThumbs();
+        if (open && FIRE.equals(pages.get(pages.size() - 1)) && fireThumbs[0] == null) loadFireThumbs();
     }
 
     private void endPreview() {
@@ -313,6 +330,8 @@ final class SettingsController {
         int skipIndex = -1;
         int dockIndex = -1;
         int style = -1;
+        /** An index into Fireplace.FIRES. */
+        int fire = -1;
         /** A Prefs.BUTTON_* key, for a remote button's row and its picker's rows. */
         String button;
         Apps.App app;
@@ -391,6 +410,14 @@ final class SettingsController {
             }
             return m;
         }
+        if (FIRE.equals(pg)) {
+            for (int i = 0; i < Fireplace.FIRES.length; i++) {
+                Row r = row("fire", "fire-" + i);
+                r.fire = i;
+                m.add(r);
+            }
+            return m;
+        }
         if (WALLS.equals(pg)) {
             for (int i = 0; i < WallpaperStyle.IDS.length; i++) {
                 Row r = row("wall", "wall-" + WallpaperStyle.IDS[i]);
@@ -425,6 +452,7 @@ final class SettingsController {
         }
         m.add(row("dockrow", "dock"));
         m.add(row("walls", "wall"));
+        m.add(row("fireplace", "fireplace"));
         m.add(row("tintrow", "tint"));
         m.add(row("remoterow", "buttons"));
         m.add(row("account", "stremio"));
@@ -470,7 +498,8 @@ final class SettingsController {
             h = inner + 24;
         }
         sizeSheet(h);
-        int dropHeight = WALLS.equals(pages.get(pages.size() - 1)) ? 148 : ROW_H;
+        String pg = pages.get(pages.size() - 1);
+        int dropHeight = WALLS.equals(pg) || FIRE.equals(pg) ? 148 : ROW_H;
         for (View v : new View[]{drop, dropBump}) {
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
             if (lp.height != dropHeight) { lp.height = dropHeight; v.setLayoutParams(lp); }
@@ -611,6 +640,14 @@ final class SettingsController {
             if (ctxGraph != null) ctxGraph.invalidate();
         } else if ("music".equals(r.kind)) {
             if (!repeat) toggleMusic(r, dir);
+        } else if ("fireplace".equals(r.kind)) {
+            if (repeat) return;
+            int v = prefs.fireplaceDock() + dir;
+            if (v < 0 || v >= Fireplace.DOCK_NAMES.length) {
+                Anim.bump(r.val, dir, 0);
+                return;
+            }
+            setFireplaceDock(r, v, dir);
         } else if ("dockapp".equals(r.kind)) {
             if (!repeat) moveDockApp(r, dir);
         } else {
@@ -646,6 +683,7 @@ final class SettingsController {
 
     private String numText(Row r) {
         if ("music".equals(r.kind)) return prefs.musicTint() ? "Bedtime tint" : "Unchanged";
+        if ("fireplace".equals(r.kind)) return Fireplace.DOCK_NAMES[prefs.fireplaceDock()];
         if ("dockapp".equals(r.kind)) return (r.dockIndex + 1) + " of " + dock.size();
         return "strength".equals(r.kind) ? strength + "%" : Ui.hhmm(value(r.kind));
     }
@@ -717,6 +755,16 @@ final class SettingsController {
             case "music":
                 toggleMusic(r, 1);
                 break;
+            case "fireplace":
+                setFireplaceDock(r, (prefs.fireplaceDock() + 1) % Fireplace.DOCK_NAMES.length, 1);
+                break;
+            case "fire": {
+                Anim.press(r.lab, 1, .04f);
+                final int which = r.fire;
+                prefs.setFireplaceLast(which);
+                root.postDelayed(() -> host.openFire(which), 110);
+                break;
+            }
             case "dockfull":
                 Anim.press(r.lab, 1, .04f);
                 break;
@@ -802,6 +850,15 @@ final class SettingsController {
         focus(idx, true, false);
     }
 
+    /** The Fireplace button's season: the value slides like a time's, and the dock behind follows at once. */
+    private void setFireplaceDock(Row r, int when, int dir) {
+        prefs.setFireplaceDock(when);
+        slideNum(r, dir);
+        host.dockChanged();
+        ctxSec = null;
+        setContext("fireplace", true);
+    }
+
     private void toggleMusic(Row r, int dir) {
         prefs.setMusicTint(!prefs.musicTint());
         r.sw.set(prefs.musicTint(), true);
@@ -874,13 +931,29 @@ final class SettingsController {
         else r.thumb.setParts(thumbs[r.style]);
     }
 
+    /** The fires' stills, from the cache or YouTube (Fireplace.loadThumbs). */
+    private void loadFireThumbs() {
+        releaseThumbs();
+        final int gen = thumbGen;
+        Fireplace.loadThumbs(ctx, (i, b) -> {
+            if (gen != thumbGen || !open) {
+                if (b != null) b.recycle();
+                return;
+            }
+            fireThumbs[i] = b;
+            for (Row r : rows) if (r.thumb != null && r.fire == i) r.thumb.setParts(b);
+        });
+    }
+
     /** Detach first, then recycle: a recycled bitmap must never reach a draw. */
     private void releaseThumbs() {
         thumbGen++;
         for (Row r : rows) if (r.thumb != null) r.thumb.setParts((Bitmap[]) null);
-        for (int i = 0; i < thumbs.length; i++) {
-            if (thumbs[i] != null) thumbs[i].recycle();
-            thumbs[i] = null;
+        for (Bitmap[] set : new Bitmap[][]{thumbs, fireThumbs}) {
+            for (int i = 0; i < set.length; i++) {
+                if (set[i] != null) set[i].recycle();
+                set[i] = null;
+            }
         }
     }
 
@@ -1007,7 +1080,7 @@ final class SettingsController {
                 if (MAIN.equals(pages.get(pages.size() - 1))) skip = prefs.skipApps();
                 renderRows();
                 // The old rows are gone, so nothing draws the thumbnails any more.
-                if (!WALLS.equals(pages.get(pages.size() - 1))) releaseThumbs();
+                if (!WALLS.equals(pages.get(pages.size() - 1)) && !FIRE.equals(pages.get(pages.size() - 1))) releaseThumbs();
                 List<Row> fr = focRows();
                 int idx = 0;
                 if (focusOn == null && WALLS.equals(pages.get(pages.size() - 1))) {
@@ -1072,7 +1145,9 @@ final class SettingsController {
         FrameLayout v = new FrameLayout(ctx);
         v.setClipChildren(false);
         String title = "Settings", eyebrow = "Fresco";
-        if (!MAIN.equals(pg)) {
+        boolean sub = pages.size() > 1;
+        if (FIRE.equals(pg)) title = "Fireplace";
+        else if (!MAIN.equals(pg)) {
             eyebrow = "Settings";
             if (DOCK.equals(pg)) title = "Dock";
             else if (DOCK_ADD.equals(pg)) { title = "Choose an app"; eyebrow = "Dock"; }
@@ -1086,7 +1161,7 @@ final class SettingsController {
         TextView e = SettingsType.text(ctx, eyebrow, Ui.text600, 26, Ui.white(.86f));
         float eb = 80 + SettingsType.cap(e.getPaint());
         SettingsType.baseline(v, e, 0, eb, 600, true);
-        if (!MAIN.equals(pg)) Ui.add(v, glyph("left"), -24, Math.round(eb - SettingsType.cap(e.getPaint()) / 2 - 12), 24, 24).setColorFilter(Ui.white(.86f), PorterDuff.Mode.SRC_IN);
+        if (sub) Ui.add(v, glyph("left"), -24, Math.round(eb - SettingsType.cap(e.getPaint()) / 2 - 12), 24, 24).setColorFilter(Ui.white(.86f), PorterDuff.Mode.SRC_IN);
         TextView h = SettingsType.text(ctx, title, Ui.display400, 60, Ui.INK);
         h.setLetterSpacing(-1f / 60f);
         float tb = eb + 24 + SettingsType.cap(h.getPaint());
@@ -1102,6 +1177,12 @@ final class SettingsController {
             String n = buttonName(pg.substring(BUTTON.length()));
             body = "Choose what the " + n + " button opens. By default it opens " + n + ".";
         } else if ("dock".equals(sec)) { item = "Dock"; body = "One to four apps sit in the glass dock on home. Home opens on the one you used last."; }
+        else if ("fireplace".equals(sec)) { item = "Fireplace"; body = fireplaceBody(); }
+        else if (sec.startsWith("fire-")) {
+            Fireplace.Fire f = Fireplace.FIRES[Integer.parseInt(sec.substring(5))];
+            item = f.name;
+            body = f.about + " Eight hours long, on YouTube. Back brings you home.";
+        }
         else if ("wall".equals(sec)) { item = "Wallpapers"; body = "The picture behind home follows the time of day, from morning to night. Choose photographs, paintings, abstract colour or space, or let it pick."; }
         else if (sec.startsWith("wall-")) { int i = WallpaperStyle.fromId(sec.substring(5)); item = WallpaperStyle.NAMES[i]; body = styleBody(i); }
         else if ("tint".equals(sec)) { if (MAIN.equals(pg)) item = "Bedtime tint"; body = tintBody(); }
@@ -1192,6 +1273,16 @@ final class SettingsController {
         return b;
     }
 
+    private String fireplaceBody() {
+        String when;
+        switch (prefs.fireplaceDock()) {
+            case Fireplace.ALWAYS: when = "It's always there."; break;
+            case Fireplace.NEVER: when = "It's hidden."; break;
+            default: when = "It's there from 1 December to 6 January.";
+        }
+        return "A Fireplace button at the end of the dock opens log fires on YouTube. " + when;
+    }
+
     private String tintBody() {
         String button = prefs.musicTint() ? "The Amazon Music button" : "Fast-forward on home";
         String base = enabled ? "Dims and warms every app at night. " + button + " turns it on or off; a second press goes back to the schedule."
@@ -1229,7 +1320,7 @@ final class SettingsController {
     }
 
     private View buildRow(Row r) {
-        r.height = "wall".equals(r.kind) ? 148 : ROW_H;
+        r.height = "wall".equals(r.kind) || "fire".equals(r.kind) ? 148 : ROW_H;
         FrameLayout f = new FrameLayout(ctx); f.setClipChildren(false);
         r.lab = Ui.add(f, new FrameLayout(ctx), 0, 0, SHEET_W, r.height);
         r.val = Ui.add(f, new FrameLayout(ctx), 312, 0, 640, r.height);
@@ -1245,6 +1336,12 @@ final class SettingsController {
             case "dockpick": case "pick": pkg = r.app.pkg; text = r.app.name; break;
             case "dockrow": text = "Dock"; break;
             case "walls": text = "Wallpapers"; break;
+            case "fireplace": text = "Fireplace"; break;
+            case "fire":
+                text = Fireplace.FIRES[r.fire].name;
+                r.thumb = Ui.add(r.lab, new Thumb(ctx), 28, 16, THUMB_W, THUMB_H);
+                if (fireThumbs[r.fire] != null) r.thumb.setParts(fireThumbs[r.fire]);
+                lx = 260; break;
             case "tintrow": text = "Bedtime tint"; break;
             case "remoterow": text = "Remote buttons"; break;
             case "account": text = "Stremio"; break;
@@ -1269,7 +1366,7 @@ final class SettingsController {
             case "enabled": case "music":
                 r.sw = Ui.add(r.val, new Switch(ctx, "enabled".equals(r.kind)), 564, (r.height - 42) / 2, 76, 42);
                 r.sw.set("enabled".equals(r.kind) ? enabled : prefs.musicTint(), false); break;
-            case "start": case "full": case "off": case "strength": case "dockapp":
+            case "start": case "full": case "off": case "strength": case "dockapp": case "fireplace":
                 chevrons(r);
                 if ("dockapp".equals(r.kind)) { r.valText = valueText(r, "Press again to remove"); r.valText.setVisibility(View.GONE); }
                 break;
@@ -1283,6 +1380,7 @@ final class SettingsController {
             case "dockrow": case "walls": case "tintrow": case "remoterow": case "button": case "skiplist":
                 r.valText = valueText(r, "");
                 r.go = Ui.add(r.val, glyph("right"), 616, (r.height - 24) / 2, 24, 24); break;
+            case "fire": r.ext = Ui.add(r.val, glyph("ext"), 616, (r.height - 24) / 2, 24, 24); break;
             case "firetv": r.valText = valueText(r, "Amazon's own"); r.ext = Ui.add(r.val, glyph("ext"), 616, (r.height - 24) / 2, 24, 24); break;
             case "account": r.valText = valueText(r, stremio.signedIn() ? "Connected" : "Not signed in"); r.dot = Ui.add(r.val, new View(ctx), 0, (r.height - 12) / 2, 12, 12); break;
         }

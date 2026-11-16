@@ -40,6 +40,10 @@ final class Prefs {
     static final String BUTTON_PRIME_VIDEO = "button_prime_video";
     /** True: the Amazon Music button toggles the bedtime tint. False: it opens Amazon Music as usual. */
     static final String BUTTON_MUSIC_TINT = "button_music_tint";
+    /** When the dock shows the Fireplace button: one of Fireplace.AT_CHRISTMAS, ALWAYS or NEVER. */
+    static final String FIREPLACE_DOCK = "fireplace_dock";
+    /** Index into Fireplace.FIRES of the fire chosen last. */
+    static final String FIREPLACE_LAST = "fireplace_last";
 
     static final class SkipApp {
         final String name;
@@ -163,6 +167,17 @@ final class Prefs {
 
     boolean musicTint() { return sp.getBoolean(BUTTON_MUSIC_TINT, true); }
     void setMusicTint(boolean on) { sp.edit().putBoolean(BUTTON_MUSIC_TINT, on).apply(); }
+
+    int fireplaceDock() {
+        int v = sp.getInt(FIREPLACE_DOCK, Fireplace.AT_CHRISTMAS);
+        return v >= 0 && v < Fireplace.DOCK_NAMES.length ? v : Fireplace.AT_CHRISTMAS;
+    }
+
+    void setFireplaceDock(int when) { sp.edit().putInt(FIREPLACE_DOCK, when).apply(); }
+
+    /** The fire chosen last, where the Fireplace page opens. */
+    int fireplaceLast() { return Math.max(0, Math.min(Fireplace.FIRES.length - 1, sp.getInt(FIREPLACE_LAST, 0))); }
+    void setFireplaceLast(int i) { sp.edit().putInt(FIREPLACE_LAST, i).apply(); }
 
     String wallpaperStyle() { return sp.getString(WALLPAPER_STYLE, "nature"); }
     void setWallpaperStyle(String id) { sp.edit().putString(WALLPAPER_STYLE, id).apply(); }
