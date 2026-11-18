@@ -336,7 +336,7 @@ The paragraph is “The dock shows these apps from left to right. Left and Right
 | Style | Explanation |
 |---|---|
 | Nature | “Photographs of lakes, forests, coasts and snow for each time of day, a different set each day of the week.” |
-| Art | “Classic paintings chosen for the light at each time of day, a new one each day. Through December, winter and Christmas paintings take over.” |
+| Art | “Classic paintings chosen for the light at each time of day, a new one each day. From 1 December to Twelfth Night, winter and Christmas paintings take over.” |
 | Abstract | “Abstract colour and form for each time of day, a different set each day of the week.” |
 | Space | “Pictures of space for each time of day, a different set each day of the week.” |
 | Random | “Each time of day picks one of the four styles. It keeps that picture until the next time of day, even after a restart.” |

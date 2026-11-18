@@ -9,9 +9,10 @@ import java.util.Calendar;
  * Keys are asset paths under `wallpapers/` without the extension:
  *   nature/<slot>-<day>, abstract/<slot>-<day>, space/<slot>-<day>   one per time of day per weekday
  *   art/everyday/<slot>-<n>   n = 1 + (day of year mod EVERYDAY_ART[slot]), a different count per time of day
- *   art/december/<slot>-<n>   n = 1 + (day of month mod 2), 1–31 December only
+ *   art/december/<slot>-<n>   n = 1 + (days since 1 December mod DECEMBER_ART[slot]), 1 December to 6 January
+ *                             (Twelfth Night, as the Fireplace button)
  * A night belongs to the date it starts on, so 02:00 is still the previous evening's date: its picture
- * doesn't change at midnight, and the night after 31 December stays on the December set.
+ * doesn't change at midnight, and the night after 6 January stays on the December set.
  */
 final class WallpaperStyle {
     static final int NATURE = 0, ART = 1, ABSTRACT = 2, SPACE = 3, RANDOM = 4;
@@ -24,6 +25,16 @@ final class WallpaperStyle {
     static final String[] DAYS = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"};
     /** How many everyday paintings each time of day has (morning, day, evening, night); build.sh packs the same. */
     static final int[] EVERYDAY_ART = {9, 17, 14, 20};
+    /** The same for the December set, shown from 1 December to 6 January. */
+    static final int[] DECEMBER_ART = {4, 3, 4, 4};
+
+    /** Days since 1 December (0–36) if `d` is between 1 December and 6 January, else -1. */
+    static int christmasDay(Calendar d) {
+        int month = d.get(Calendar.MONTH), day = d.get(Calendar.DAY_OF_MONTH);
+        if (month == Calendar.DECEMBER) return day - 1;
+        if (month == Calendar.JANUARY && day <= 6) return 30 + day;
+        return -1;
+    }
 
     private WallpaperStyle() {}
 
@@ -68,8 +79,10 @@ final class WallpaperStyle {
         String slot = SLOTS[period(now)];
         Calendar d = slotDate(now);
         if (s == ART) {
-            if (d.get(Calendar.MONTH) == Calendar.DECEMBER) {
-                return "art/december/" + slot + "-" + (1 + d.get(Calendar.DAY_OF_MONTH) % 2);
+            int xmas = christmasDay(d);
+            if (xmas >= 0) {
+                // Counted from 1 December, so the turn of the year doesn't repeat yesterday's painting.
+                return "art/december/" + slot + "-" + (1 + xmas % DECEMBER_ART[period(now)]);
             }
             return "art/everyday/" + slot + "-" + (1 + d.get(Calendar.DAY_OF_YEAR) % EVERYDAY_ART[period(now)]);
         }

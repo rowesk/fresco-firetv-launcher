@@ -1255,7 +1255,7 @@ final class SettingsController {
         switch (i) {
             case WallpaperStyle.ART:
                 b = "Classic paintings chosen for the light at each time of day, a new one each day. "
-                        + "Through December, winter and Christmas paintings take over.";
+                        + "From 1 December to Twelfth Night, winter and Christmas paintings take over.";
                 break;
             case WallpaperStyle.ABSTRACT:
                 b = "Abstract colour and form for each time of day, a different set each day of the week.";

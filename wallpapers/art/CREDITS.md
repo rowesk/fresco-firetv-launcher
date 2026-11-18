@@ -1,6 +1,6 @@
 # Art wallpaper credits
 
-The 68 art wallpapers are classic paintings in the public domain (one is CC0), from Wikimedia Commons. Credit isn't required, but here it is. Each was cropped by hand to 16:9 using the painting's full width (only *Ophelia* is zoomed slightly, to lose its arched top), positioned so that no face, figure or main subject is cut off.
+The 75 art wallpapers are classic paintings in the public domain (one is CC0), from Wikimedia Commons. Credit isn't required, but here it is. Each was cropped by hand to 16:9 using the painting's full width (only *Ophelia* and Sisley's *Snow at Louveciennes* are zoomed slightly, to lose an arched top and a scan border), positioned so that no face, figure or main subject is cut off.
 
 | Set | Slot | # | Painting | File | Source |
 |---|---|---|---|---|---|
@@ -66,9 +66,16 @@ The 68 art wallpapers are classic paintings in the public domain (one is CC0), f
 | everyday | night | 20 | Joseph Wright of Derby, *Vesuvius in Eruption*, c. 1776 | `out/everyday/night-20.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Joseph_Wright_of_Derby_-_Vesuvius_in_Eruption,_with_a_View_over_the_Islands_in_the_Bay_of_Naples_-_Google_Art_Project.jpg) |
 | december | morning | 1 | Claude Monet, *The Magpie*, 1869 | `out/december/morning-1.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Claude_Monet_-_The_Magpie_-_Google_Art_Project.jpg) |
 | december | morning | 2 | Alfred Sisley, *Snow at Louveciennes*, 1874 | `out/december/morning-2.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Alfred_Sisley_-_Snow_at_Louveciennes_-_Google_Art_Project.jpg) |
+| december | morning | 3 | Jean-Léon Gérôme, *The Duel After the Masquerade*, 1857–59 | `out/december/morning-3.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Jean-L%C3%A9on_G%C3%A9r%C3%B4me_-_The_Duel_After_the_Masquerade_-_Google_Art_Project.jpg) |
+| december | morning | 4 | Gustave Courbet, *Fox in the Snow*, 1860 | `out/december/morning-4.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Gustave_Courbet_-_Fox_in_the_Snow_-_1979.7.FA_-_Dallas_Museum_of_Art.jpg) |
 | december | day | 1 | Hendrick Avercamp, *Winter Landscape with Ice Skaters*, c. 1608 | `out/december/day-1.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Hendrick_Avercamp_-_Winterlandschap_met_ijsvermaak.jpg) |
 | december | day | 2 | Sandro Botticelli, *Mystic Nativity*, c. 1500 | `out/december/day-2.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Mystic_Nativity,_Sandro_Botticelli.jpg) |
+| december | day | 3 | Ernest Meissonier, *1814, The Campaign of France*, 1864 | `out/december/day-3.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Jean-Louis-Ernest_Meissonier-Campagne_de_France.jpg) |
 | december | evening | 1 | Pieter Bruegel the Elder, *The Census at Bethlehem*, 1566 | `out/december/evening-1.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Pieter_Bruegel_the_Elder_-_The_Numbering_at_Bethlehem_-_Google_Art_Project.jpg) |
 | december | evening | 2 | Caspar David Friedrich, *Winter Landscape with Church*, 1811 | `out/december/evening-2.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Caspar_David_Friedrich_-_Winterlandschaft_mit_Kirche_(National_Gallery_London).jpg) |
+| december | evening | 3 | Nikolai Sverchkov, *Troika in Winter*, before 1899 | `out/december/evening-3.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Nikolai_Sverchkov_-_Troika_in_Winter_(2).jpg) |
+| december | evening | 4 | Jacob Jordaens, *The King Drinks (Twelfth Night)*, c. 1638 | `out/december/evening-4.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:The_King_Drinks_(Jordaens,_Brussels,_c._1638).jpg) |
 | december | night | 1 | Viggo Johansen, *Silent Night*, 1891 | `out/december/night-1.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Viggo_Johansen_-_Glade_jul_-_1891.jpg) |
 | december | night | 2 | Gerard van Honthorst, *Adoration of the Shepherds*, 1622 | `out/december/night-2.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Gerard_van_Honthorst_-_Adoration_of_the_Shepherds_(1622).jpg) |
+| december | night | 3 | Peter Paul Rubens, *The Adoration of the Magi*, 1609, reworked 1629 | `out/december/night-3.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:La_adoraci%C3%B3n_de_los_Reyes_Magos_(Rubens,_Prado).jpg) |
+| december | night | 4 | Arkhip Kuindzhi, *Moonlight in the Forest, Winter*, 1898–1908 | `out/december/night-4.webp` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Archip_Iwanowitsch_Kuindshi_003.jpg) |
