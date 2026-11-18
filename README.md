@@ -17,7 +17,7 @@ Fresco gets around this: when Amazon's launcher wakes up, Fresco throws up a bla
 
 ### Wallpapers that match the time of day
 
-By default, Fresco rotates through 20 public-domain paintings matched to morning, afternoon, evening, and night—Constable's *Hay Wain* during the day, Turner's *Fighting Temeraire* at sunset, Rembrandt's *Night Watch* late at night. Every painting was hand-cropped to 16:9 so faces and subjects aren't cut in half, and 8 winter paintings rotate in during December.
+By default, Fresco rotates through 60 public-domain paintings matched to morning, afternoon, evening, and night—Rubens and Constable during the day, Turner's *Fighting Temeraire* at sunset, Caravaggio and Wright of Derby's candlelit scenes late at night. Every painting was hand-cropped to 16:9 so faces and subjects aren't cut in half, and 8 winter paintings rotate in during December.
 
 If you don't want fine art on your TV, you can switch to Nature photography, Space (NASA/Webb), Abstract textures, or shuffle them. The Wallpapers page shows a thumbnail of each style. The clock picks light or dark ink for each picture, with no shadow or backing.
 

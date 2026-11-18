@@ -8,7 +8,7 @@ import java.util.Calendar;
  *
  * Keys are asset paths under `wallpapers/` without the extension:
  *   nature/<slot>-<day>, abstract/<slot>-<day>, space/<slot>-<day>   one per time of day per weekday
- *   art/everyday/<slot>-<n>   n = 1 + (day of year mod 5)
+ *   art/everyday/<slot>-<n>   n = 1 + (day of year mod EVERYDAY_ART[slot]), a different count per time of day
  *   art/december/<slot>-<n>   n = 1 + (day of month mod 2), 1–31 December only
  * A night belongs to the date it starts on, so 02:00 is still the previous evening's date: its picture
  * doesn't change at midnight, and the night after 31 December stays on the December set.
@@ -22,6 +22,8 @@ final class WallpaperStyle {
     static final int MORNING = 0, DAY = 1, EVENING = 2, NIGHT = 3;
     static final String[] SLOTS = {"morning", "day", "evening", "night"};
     static final String[] DAYS = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"};
+    /** How many everyday paintings each time of day has (morning, day, evening, night); build.sh packs the same. */
+    static final int[] EVERYDAY_ART = {9, 17, 14, 20};
 
     private WallpaperStyle() {}
 
@@ -69,7 +71,7 @@ final class WallpaperStyle {
             if (d.get(Calendar.MONTH) == Calendar.DECEMBER) {
                 return "art/december/" + slot + "-" + (1 + d.get(Calendar.DAY_OF_MONTH) % 2);
             }
-            return "art/everyday/" + slot + "-" + (1 + d.get(Calendar.DAY_OF_YEAR) % 5);
+            return "art/everyday/" + slot + "-" + (1 + d.get(Calendar.DAY_OF_YEAR) % EVERYDAY_ART[period(now)]);
         }
         int day = (d.get(Calendar.DAY_OF_WEEK) + 5) % 7; // Calendar.MONDAY = 2 → 0
         return IDS[s] + "/" + slot + "-" + DAYS[day];

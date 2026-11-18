@@ -10,7 +10,7 @@
 #   nature/    ../wallpapers/nature/out/     <slot>-<day>.webp and -blur.webp (28), made by photos.py
 #   abstract/  ../wallpapers/abstract/out/   the same names (28), made by photos.py
 #   space/     ../wallpapers/space/out/      the same names (28), committed
-#   art/       ../wallpapers/art/out/        everyday/<slot>-<n> (20) and december/<slot>-<n> (8), committed
+#   art/       ../wallpapers/art/out/        everyday/<slot>-<n> (60) and december/<slot>-<n> (8), committed
 # Nature and Abstract are Pexels/Unsplash photos, which can't be redistributed as files, so the first
 # build downloads and prepares them (../wallpapers/photos.py).
 #
@@ -64,15 +64,17 @@ pack() {
 weekly=()
 for slot in morning day evening night; do for day in mon tue wed thu fri sat sun; do weekly+=("$slot-$day"); done; done
 art=()
+# Everyday paintings per time of day; WallpaperStyle.EVERYDAY_ART must match.
+typeset -A everyday=(morning 9 day 17 evening 14 night 20)
 for slot in morning day evening night; do
-    for n in 1 2 3 4 5; do art+=("everyday/$slot-$n"); done
+    for n in {1..$everyday[$slot]}; do art+=("everyday/$slot-$n"); done
     for n in 1 2; do art+=("december/$slot-$n"); done
 done
 
 for style from in nature "$WP/nature/out" abstract "$WP/abstract/out" space "$WP/space/out" art "$WP/art/out"; do
-    if [[ $style == art ]]; then pack art "$from" "${art[@]}"; else pack "$style" "$from" "${weekly[@]}"; fi
+    if [[ $style == art ]]; then pack art "$from" "${art[@]}"; want=${#art}; else pack "$style" "$from" "${weekly[@]}"; want=${#weekly}; fi
     if (( ${#absent} > 0 )); then echo "wallpapers: $style is missing ${absent[*]}" >&2; exit 1; fi
-    echo "wallpapers: $style $packed of 28 packed"
+    echo "wallpapers: $style $packed of $want packed"
 done
 
 # ---- resources, code, dex ----

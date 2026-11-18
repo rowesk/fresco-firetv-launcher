@@ -51,11 +51,21 @@ public final class WallpaperStyleCheck {
         Calendar d = at(y, Calendar.DECEMBER, 1, 7, 0);
         expect(art(d).equals("art/december/morning-" + (1 + 1 % 2)), "December painting = 1 + (day of month mod 2)");
         Calendar e = at(y, Calendar.NOVEMBER, 10, 18, 0);
-        expect(art(e).equals("art/everyday/evening-" + (1 + e.get(Calendar.DAY_OF_YEAR) % 5)), "everyday painting = 1 + (day of year mod 5)");
-        // Every everyday painting comes round in 5 days; consecutive days differ.
-        java.util.HashSet<String> five = new java.util.HashSet<>();
-        for (int i = 0; i < 5; i++) five.add(art(at(y, Calendar.MARCH, 1 + i, 8, 0)));
-        expect(five.size() == 5, "5 consecutive mornings show all 5 everyday paintings");
+        expect(art(e).equals("art/everyday/evening-" + (1 + e.get(Calendar.DAY_OF_YEAR) % 14)), "everyday evening painting = 1 + (day of year mod 14)");
+        // Each time of day comes round all its everyday paintings in that many days, and every one is packed.
+        String[] slotHour = {"08", "13", "18", "23"};
+        for (int p = 0; p < 4; p++) {
+            int n = WallpaperStyle.EVERYDAY_ART[p];
+            java.util.HashSet<String> seen = new java.util.HashSet<>();
+            boolean allPacked = true;
+            for (int i = 0; i < n; i++) {
+                String k = art(at(y, Calendar.MARCH, 1 + i, Integer.parseInt(slotHour[p]), 0));
+                seen.add(k);
+                if (!shows(k, at(y, Calendar.MARCH, 1 + i, Integer.parseInt(slotHour[p]), 0)).equals(k)) allPacked = false;
+            }
+            expect(seen.size() == n, n + " consecutive " + WallpaperStyle.SLOTS[p] + "s show all " + n + " everyday paintings");
+            expect(allPacked, "every everyday " + WallpaperStyle.SLOTS[p] + " painting is packed in this build");
+        }
         // No December art outside December, whatever the style, all year round.
         boolean leak = false;
         for (Calendar c = at(y, Calendar.JANUARY, 1, 6, 30); c.get(Calendar.YEAR) == y; c.add(Calendar.HOUR_OF_DAY, 1)) {
