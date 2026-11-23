@@ -100,6 +100,7 @@ final class MarkArt {
             b("xboxcloud", 0xFF1A9A1A, 0xFF0B5E0B, "gamepass.fire.tv", "com.microsoft.xboxone.smartglass"),
             b("moonlight", 0xFF7D8CFF, 0xFF3442C2, "com.limelight"),
             b("nuvio", 0xFF2FD3F5, 0xFF9B4BFF, "com.nuvio.tv"),
+            b("aiostreams", Ui.INK_DARK, "io.github.viren070.aiostreams"),
             // Fresco's own Fireplace button, which isn't an app: Fireplace.DOCK_ID, spelled out so
             // tools/preview-marks.sh can build this file on its own.
             b("fireplace", 0xFFFFB02E, 0xFFE8461E, "io.github.rowesk.fresco.fireplace"),

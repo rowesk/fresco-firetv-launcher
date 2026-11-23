@@ -120,6 +120,14 @@ public final class DrawMarks {
         // Nuvio: a soft triangle with a play cut out.
         write(dir, "nuvio", layer(play(28, 22, 78, 50, 28, 78, 26), null), layer(play(36, 37, 58, 50, 36, 63, 7), "#fff"));
 
+        // AIOStreams: a leaning bar and a dot.
+        Path2D lean = new Path2D.Double();
+        lean.moveTo(29, 75);
+        lean.lineTo(55, 25);
+        Area aio = stroke(lean, 22, BasicStroke.CAP_ROUND);
+        aio.add(new Area(circle(71, 69, 15)));
+        write(dir, "aiostreams", layer(aio, null));
+
         // Moonlight: a crescent.
         Area moon = new Area(circle(50, 50, 38));
         moon.subtract(new Area(circle(67, 37, 31)));
