@@ -117,6 +117,9 @@ public final class DrawMarks {
         pad.add(new Area(circle(72, 55, 4.2)));
         write(dir, "xboxcloud", layer(cloud, null), layer(pad, "#fff"));
 
+        // Nuvio: a soft triangle with a play cut out.
+        write(dir, "nuvio", layer(play(28, 22, 78, 50, 28, 78, 26), null), layer(play(36, 37, 58, 50, 36, 63, 7), "#fff"));
+
         // Moonlight: a crescent.
         Area moon = new Area(circle(50, 50, 38));
         moon.subtract(new Area(circle(67, 37, 31)));
